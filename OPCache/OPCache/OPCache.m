@@ -184,6 +184,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         retVal = [self diskImageFromURL:url cacheName:cacheName];
         if (retVal)
         {
+            [self setObject:retVal forKey:cacheKey];
             return retVal;
         }
     }
