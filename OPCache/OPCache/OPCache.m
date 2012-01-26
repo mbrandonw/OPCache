@@ -281,9 +281,40 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     
     return [(UIImage*)^(UIImage *image){
         
-        UIGraphicsBeginImageContext(size);
-        [image drawInRect:CGRectMake(0.0f, 0.0f, size.width, size.height)];
-        UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+        CGFloat sourceWidth = image.size.width;
+        CGFloat sourceHeight = image.size.height;
+        CGFloat targetWidth = size.width;
+        CGFloat targetHeight = size.height;
+        CGFloat sourceRatio = sourceWidth / sourceHeight;
+        CGFloat targetRatio = targetWidth / targetHeight;
+        BOOL scaleWidth = sourceRatio <= targetRatio;
+        
+        CGFloat scalingFactor, scaledWidth, scaledHeight;
+        if (scaleWidth)
+        {
+            scalingFactor = 1.0f / sourceRatio;
+            scaledWidth = targetWidth;
+            scaledHeight = roundf(targetWidth * scalingFactor);
+        }
+        else
+        {
+            scalingFactor = sourceRatio;
+            scaledWidth = roundf(targetHeight * scalingFactor);
+            scaledHeight = targetHeight;
+        }
+        CGFloat scaleFactor = scaledHeight / sourceHeight;
+        
+        CGRect sourceRect = CGRectMake(roundf(scaledWidth-targetWidth)/2.0f/scaleFactor, (scaledHeight-targetHeight)/2.0f/scaleFactor, 
+                                       targetWidth/scaleFactor, targetHeight/scaleFactor);
+        
+        UIImage *newImage = nil;
+        UIGraphicsBeginImageContextWithOptions(size, NO, 1.0f);
+        {
+            CGImageRef sourceImageRef = CGImageCreateWithImageInRect(image.CGImage, sourceRect);
+            newImage = [UIImage imageWithCGImage:sourceImageRef scale:1.0f orientation:image.imageOrientation];
+            [newImage drawInRect:CGRectMake(0.0f, 0.0f, targetWidth, targetHeight)];
+            newImage = UIGraphicsGetImageFromCurrentImageContext();
+        }
         UIGraphicsEndImageContext();
         return newImage;
         
