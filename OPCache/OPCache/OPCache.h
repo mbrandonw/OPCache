@@ -19,15 +19,25 @@ typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
 
 +(id) sharedCache;
 
+/**
+ Fetching an image from an external source, optionally processing it, and then
+ stuffing it into a memory cache and disk cache.
+ */
 -(void) fetchImageForURL:(NSString*)url completion:(OPCacheImageCompletion)completion;
 -(void) fetchImageForURL:(NSString*)url 
                cacheName:(NSString*)cacheName 
               processing:(OPCacheImageProcessingBlock)processing
               completion:(OPCacheImageCompletion)completion;
 
+/**
+ Grabbing an image from the cache without attempting to load it externally.
+ */
 -(UIImage*) cachedImageForURL:(NSString*)url;
 -(UIImage*) cachedImageForURL:(NSString*)url cacheName:(NSString *)cacheName;
 
+/**
+ Removing an image from the cache (both memory and disk).
+ */
 -(void) removeImageForURL:(NSString*)url;
 -(void) removeAllImagesForURL:(NSString*)url;
 -(void) removeImageForURL:(NSString*)url cacheName:(NSString*)cacheName;
