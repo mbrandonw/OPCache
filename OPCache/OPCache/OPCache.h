@@ -6,6 +6,9 @@
 //  Copyright (c) 2012 Opetopic. All rights reserved.
 //
 
+typedef void (^OPCacheImageCompletion)(UIImage *image, BOOL isCached);
+typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
+
 #import <Foundation/Foundation.h>
 
 @interface OPCache : NSCache
@@ -16,11 +19,11 @@
 
 +(id) sharedCache;
 
--(void) fetchImageForURL:(NSString*)url completion:(void(^)(UIImage *image, BOOL isCached))completion;
+-(void) fetchImageForURL:(NSString*)url completion:(OPCacheImageCompletion)completion;
 -(void) fetchImageForURL:(NSString*)url 
                cacheName:(NSString*)cacheName 
-              processing:(UIImage*(^)(UIImage *image))processing
-              completion:(void(^)(UIImage *image, BOOL isCached))completion;
+              processing:(OPCacheImageProcessingBlock)processing
+              completion:(OPCacheImageCompletion)completion;
 
 -(UIImage*) cachedImageForURL:(NSString*)url;
 -(UIImage*) cachedImageForURL:(NSString*)url cacheName:(NSString *)cacheName;
@@ -38,6 +41,6 @@
 /**
  An image processing block for resizing an image.
  */
-+(UIImage*(^)(UIImage *image)) resizeProcessingBlock:(CGSize)size;
++(OPCacheImageProcessingBlock) resizeProcessingBlock:(CGSize)size;
 
 @end

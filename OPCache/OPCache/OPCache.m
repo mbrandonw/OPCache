@@ -22,6 +22,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 @property (nonatomic, strong) NSOperationQueue *ioOperationQueue;
 @property (nonatomic, strong) NSMutableDictionary *imageOperationsByCacheKey;
 @property (nonatomic, strong) NSOperationQueue *imageOperationQueue;
+@property (nonatomic, strong) NSMutableDictionary *additionalImageOperationCompletionsByCacheKey;
 -(UIImage*) diskImageFromURL:(NSString*)url;
 -(UIImage*) diskImageFromURL:(NSString*)url cacheName:(NSString*)cacheName;
 -(NSString*) cacheKeyFromImageURL:(NSString*)url;
@@ -41,6 +42,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 @synthesize ioOperationQueue = _ioOperationQueue;
 @synthesize imageOperationsByCacheKey = _imageOperationsByCacheKey;
 @synthesize imageOperationQueue = _imageOperationQueue;
+@synthesize additionalImageOperationCompletionsByCacheKey = _additionalImageOperationCompletionsByCacheKey;
 
 +(id) sharedCache {
     static OPCache *__sharedCache = nil;
@@ -64,6 +66,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     self.imageOperationsByCacheKey = [NSMutableDictionary new];
     self.imageOperationQueue = [NSOperationQueue new];
     self.imageOperationQueue.maxConcurrentOperationCount = 4;
+    self.additionalImageOperationCompletionsByCacheKey = [NSMutableDictionary new];
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(cleanUpPersistedImages) name:UIApplicationDidEnterBackgroundNotification object:nil];
     
@@ -77,6 +80,8 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 -(void) fetchImageForURL:(NSString *)url cacheName:(NSString *)cacheName processing:(UIImage *(^)(UIImage *))processing completion:(void (^)(UIImage *, BOOL))completion {
     
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
+    
+    // check if image is cached in memory
     id retVal = [self objectForKey:cacheKey];
     if (retVal)
     {
@@ -89,6 +94,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     }
     else
     {
+        // check if image is cached on disk
         retVal = [self diskImageFromURL:url cacheName:cacheName];
         if (retVal)
         {
@@ -102,26 +108,49 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         }
         else
         {
-            NSBlockOperation *operation = [NSBlockOperation blockOperationWithBlock:^{
+            // check if there is already an operation running for this image
+            if ([self.imageOperationsByCacheKey objectForKey:cacheKey])
+            {
+                // if so, just keep track of the completion handler so we can call it when the original image operation is done
+                if (! [self.additionalImageOperationCompletionsByCacheKey objectForKey:cacheKey])
+                    [self.additionalImageOperationCompletionsByCacheKey setObject:[NSMutableArray new] forKey:cacheKey];
+                [[self.additionalImageOperationCompletionsByCacheKey objectForKey:cacheKey] addObject:[completion copy]];
+                return ;
+            }
+            
+            NSBlockOperation *operation = [NSBlockOperation new];
+            [operation addExecutionBlock:^{
                 
-                // grab the image from the url and process it if necessary
+                // grab the image data from the url
                 NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url]];
+                
+                // turn the data into an image
                 UIImage *image = [[UIImage alloc] initWithData:data];
+                
+                // process the image if needed
                 if (processing)
                     image = processing(image);
                 
                 // call the completion handler on the main thread
                 if (completion) {
                     dispatch_async(dispatch_get_main_queue(), ^{
+                        
+                        // call the completion handle for this operation, and any other operations that were folded in
                         completion(image, NO);
+                        for (OPCacheImageCompletion block in [self.additionalImageOperationCompletionsByCacheKey objectForKey:cacheKey])
+                            block(image, NO);
+                        
+                        // clean up cache dictionaries
                         [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
+                        [self.additionalImageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
                     });
                 }
                 
                 // write the image to disk if needed
-                if (self.imagesPersistToDisk) {
+                if (self.imagesPersistToDisk)
+                {
                     [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
-                        [(NSData*)(processing?UIImagePNGRepresentation(image):image) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] 
+                        [(NSData*)(processing?UIImagePNGRepresentation(image):data) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] 
                                                                                       atomically:YES];
                     }]];
                 }
@@ -219,7 +248,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName {
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
-    [(NSOperation*)[self.imageOperationsByCacheKey objectForKey:cacheName] cancel];
+    [(NSOperation*)[self.imageOperationsByCacheKey objectForKey:cacheKey] cancel];
     [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
 }
 
