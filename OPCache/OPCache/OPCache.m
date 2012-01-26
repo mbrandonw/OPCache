@@ -30,12 +30,14 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 -(NSString*) cachePathForImageURL:(NSString*)url cacheName:(NSString*)cacheName;
 -(void) cancelFetchForURL:(NSString*)url;
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName;
+-(void) cleanUpPersistedImages;
 @end
 
 @implementation OPCache
 
 @synthesize imagesPersistToDisk = _imagesPersistToDisk;
 @synthesize imagePersistencePath = _imagePersistencePath;
+@synthesize imagePersistenceTimeInterval = _imagePersistenceTimeInterval;
 @synthesize ioOperationQueue = _ioOperationQueue;
 @synthesize imageOperationsByCacheKey = _imageOperationsByCacheKey;
 @synthesize imageOperationQueue = _imageOperationQueue;
@@ -56,11 +58,14 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     self.imagePersistencePath = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject] 
                                  stringByAppendingPathComponent:@"OPCache"];
     self.imagesPersistToDisk = YES;
+    self.imagePersistenceTimeInterval = 60.0f * 60.0f * 24.0f * 14.0f; // 2 weeks of disk persistence
     self.ioOperationQueue = [NSOperationQueue new];
     self.ioOperationQueue.maxConcurrentOperationCount = 1;
     self.imageOperationsByCacheKey = [NSMutableDictionary new];
     self.imageOperationQueue = [NSOperationQueue new];
     self.imageOperationQueue.maxConcurrentOperationCount = 4;
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(cleanUpPersistedImages) name:UIApplicationDidEnterBackgroundNotification object:nil];
     
     return self;
 }
@@ -109,21 +114,49 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 if (completion) {
                     dispatch_async(dispatch_get_main_queue(), ^{
                         completion(image, NO);
+                        [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
                     });
                 }
                 
                 // write the image to disk if needed
                 if (self.imagesPersistToDisk) {
                     [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
-                        [data writeToFile:[self cachePathForImageURL:url cacheName:cacheName] atomically:YES];
+                        [(NSData*)(processing?UIImagePNGRepresentation(image):image) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] 
+                                                                                      atomically:YES];
                     }]];
                 }
                 
             }];
+            operation.threadPriority = 0.1f;
             [self.imageOperationQueue addOperation:operation];
             [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
         }
     }
+}
+
+-(UIImage*) cachedImageForURL:(NSString*)url {
+    return [self cachedImageForURL:url cacheName:kOPCacheDefaultCacheName];
+}
+
+-(UIImage*) cachedImageForURL:(NSString*)url cacheName:(NSString *)cacheName {
+    
+    // first try finding the image in memory cache
+    NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
+    id retVal = [self objectForKey:cacheKey];
+    if (retVal)
+    {
+        return retVal;
+    }
+    else
+    {
+        // then trying reviving the image from disk cache
+        retVal = [self diskImageFromURL:url cacheName:cacheName];
+        if (retVal)
+        {
+            return retVal;
+        }
+    }
+    return nil;
 }
 
 -(void) setImagePersistencePath:(NSString *)imagePersistencePath {
@@ -145,7 +178,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(NSString*) cacheKeyFromImageURL:(NSString*)url cacheName:(NSString*)cacheName {
-    return [[NSString alloc] initWithFormat:@"OPCache-%@-%u", cacheName, [url hash]];
+    return [[NSString alloc] initWithFormat:@"OPCache-%@-%u", cacheName?cacheName:kOPCacheDefaultCacheName, [url hash]];
 }
 
 -(NSString*) cachePathForImageURL:(NSString*)url {
@@ -185,7 +218,45 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName {
-    [(NSOperation*)[self.imageOperationsByCacheKey objectForKey:[self cacheKeyFromImageURL:url cacheName:cacheName]] cancel];
+    NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
+    [(NSOperation*)[self.imageOperationsByCacheKey objectForKey:cacheName] cancel];
+    [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
+}
+
+-(void) cleanUpPersistedImages {
+    
+    // clean up the old image files in the IO queue, and let the OS know this may take some time.
+    UIBackgroundTaskIdentifier taskIdentifier = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:nil];
+    [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
+        
+        NSDate *cutoff = [NSDate dateWithTimeIntervalSinceNow:-self.imagePersistenceTimeInterval];
+        NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:self.imagePersistencePath];
+        NSString *file = nil;
+        while (file = [enumerator nextObject])
+        {
+            NSString *filePath = [self.imagePersistencePath stringByAppendingPathComponent:file];
+            NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:NULL];
+            if ([cutoff compare:[attributes objectForKey:NSFileModificationDate]] == NSOrderedDescending)
+            {
+                [[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL];
+            }
+        }
+        
+        [[UIApplication sharedApplication] endBackgroundTask:taskIdentifier];
+    }]];
+}
+
++(UIImage*(^)(UIImage *image)) resizeProcessingBlock:(CGSize)size {
+    
+    return [(UIImage*)^(UIImage *image){
+        
+        UIGraphicsBeginImageContext(size);
+        [image drawInRect:CGRectMake(0.0f, 0.0f, size.width, size.height)];
+        UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+        return newImage;
+        
+    } copy];
 }
 
 @end
