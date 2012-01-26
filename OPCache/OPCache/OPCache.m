@@ -9,6 +9,7 @@
 #import "OPCache.h"
 
 #define kOPCacheDefaultCacheName    @""
+#define kOPCacheOriginalKey         @"__original__"
 
 void __opcache_dispatch_main_queue_asap(dispatch_block_t block);
 void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
@@ -22,7 +23,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 @property (nonatomic, strong) NSOperationQueue *ioOperationQueue;
 @property (nonatomic, strong) NSMutableDictionary *imageOperationsByCacheKey;
 @property (nonatomic, strong) NSOperationQueue *imageOperationQueue;
-@property (nonatomic, strong) NSMutableDictionary *additionalImageOperationCompletionsByCacheKey;
+@property (nonatomic, strong) NSMutableDictionary *imageOperationCompletionsByCacheKey;
 -(UIImage*) diskImageFromURL:(NSString*)url;
 -(UIImage*) diskImageFromURL:(NSString*)url cacheName:(NSString*)cacheName;
 -(NSString*) cacheKeyFromImageURL:(NSString*)url;
@@ -42,7 +43,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 @synthesize ioOperationQueue = _ioOperationQueue;
 @synthesize imageOperationsByCacheKey = _imageOperationsByCacheKey;
 @synthesize imageOperationQueue = _imageOperationQueue;
-@synthesize additionalImageOperationCompletionsByCacheKey = _additionalImageOperationCompletionsByCacheKey;
+@synthesize imageOperationCompletionsByCacheKey = _imageOperationCompletionsByCacheKey;
 
 +(id) sharedCache {
     static OPCache *__sharedCache = nil;
@@ -66,7 +67,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     self.imageOperationsByCacheKey = [NSMutableDictionary new];
     self.imageOperationQueue = [NSOperationQueue new];
     self.imageOperationQueue.maxConcurrentOperationCount = 4;
-    self.additionalImageOperationCompletionsByCacheKey = [NSMutableDictionary new];
+    self.imageOperationCompletionsByCacheKey = [NSMutableDictionary new];
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(cleanUpPersistedImages) name:UIApplicationDidEnterBackgroundNotification object:nil];
     
@@ -80,6 +81,10 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 -(void) fetchImageForURL:(NSString *)url cacheName:(NSString *)cacheName processing:(UIImage *(^)(UIImage *))processing completion:(void (^)(UIImage *, BOOL))completion {
     
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
+    
+    if (! [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
+        [self.imageOperationCompletionsByCacheKey setObject:[NSMutableArray new] forKey:cacheKey];
+    [[self.imageOperationCompletionsByCacheKey objectForKey:cacheKey] addObject:[completion copy]];
     
     // check if image is cached in memory
     id retVal = [self objectForKey:cacheKey];
@@ -108,21 +113,17 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         }
         else
         {
-            // check if there is already an operation running for this image
+            // if there is already an operation running for this image, there's nothing to do. we can just wait till it's done
             if ([self.imageOperationsByCacheKey objectForKey:cacheKey])
-            {
-                // if so, just keep track of the completion handler so we can call it when the original image operation is done
-                if (! [self.additionalImageOperationCompletionsByCacheKey objectForKey:cacheKey])
-                    [self.additionalImageOperationCompletionsByCacheKey setObject:[NSMutableArray new] forKey:cacheKey];
-                [[self.additionalImageOperationCompletionsByCacheKey objectForKey:cacheKey] addObject:[completion copy]];
                 return ;
-            }
             
             NSBlockOperation *operation = [NSBlockOperation new];
             [operation addExecutionBlock:^{
                 
                 // grab the image data from the url
-                NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url]];
+                NSData *data = [[NSData alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
+                if (! data)
+                    data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url]];
                 
                 // turn the data into an image
                 UIImage *image = [[UIImage alloc] initWithData:data];
@@ -135,14 +136,13 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 if (completion) {
                     dispatch_async(dispatch_get_main_queue(), ^{
                         
-                        // call the completion handle for this operation, and any other operations that were folded in
-                        completion(image, NO);
-                        for (OPCacheImageCompletion block in [self.additionalImageOperationCompletionsByCacheKey objectForKey:cacheKey])
+                        // call all of the completion handlers associated with this operation
+                        for (OPCacheImageCompletion block in [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
                             block(image, NO);
                         
                         // clean up cache dictionaries
                         [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
-                        [self.additionalImageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
+                        [self.imageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
                     });
                 }
                 
@@ -150,6 +150,8 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 if (self.imagesPersistToDisk)
                 {
                     [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
+                        
+                        [data writeToFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey] atomically:YES];
                         [(NSData*)(processing?UIImagePNGRepresentation(image):data) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] 
                                                                                       atomically:YES];
                     }]];
