@@ -1,0 +1,263 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CAD5396A14D1B72F00ADC9A8 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CAD5396914D1B72F00ADC9A8 /* UIKit.framework */; };
+		CAD5396C14D1B72F00ADC9A8 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CAD5396B14D1B72F00ADC9A8 /* Foundation.framework */; };
+		CAD5396E14D1B72F00ADC9A8 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CAD5396D14D1B72F00ADC9A8 /* CoreGraphics.framework */; };
+		CAD5397614D1B72F00ADC9A8 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = CAD5397514D1B72F00ADC9A8 /* main.m */; };
+		CAD5397A14D1B72F00ADC9A8 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = CAD5397914D1B72F00ADC9A8 /* AppDelegate.m */; };
+		CAD5398814D1B76000ADC9A8 /* OPCache.m in Sources */ = {isa = PBXBuildFile; fileRef = CAD5398714D1B76000ADC9A8 /* OPCache.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		CAD5396514D1B72F00ADC9A8 /* OPCache.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OPCache.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CAD5396914D1B72F00ADC9A8 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		CAD5396B14D1B72F00ADC9A8 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		CAD5396D14D1B72F00ADC9A8 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		CAD5397114D1B72F00ADC9A8 /* OPCache-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "OPCache-Info.plist"; sourceTree = "<group>"; };
+		CAD5397514D1B72F00ADC9A8 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		CAD5397714D1B72F00ADC9A8 /* OPCache-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "OPCache-Prefix.pch"; sourceTree = "<group>"; };
+		CAD5397814D1B72F00ADC9A8 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		CAD5397914D1B72F00ADC9A8 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		CAD5398614D1B76000ADC9A8 /* OPCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OPCache.h; sourceTree = "<group>"; };
+		CAD5398714D1B76000ADC9A8 /* OPCache.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OPCache.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CAD5396214D1B72F00ADC9A8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5396A14D1B72F00ADC9A8 /* UIKit.framework in Frameworks */,
+				CAD5396C14D1B72F00ADC9A8 /* Foundation.framework in Frameworks */,
+				CAD5396E14D1B72F00ADC9A8 /* CoreGraphics.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CAD5395A14D1B72F00ADC9A8 = {
+			isa = PBXGroup;
+			children = (
+				CAD5396F14D1B72F00ADC9A8 /* OPCache */,
+				CAD5396814D1B72F00ADC9A8 /* Frameworks */,
+				CAD5396614D1B72F00ADC9A8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CAD5396614D1B72F00ADC9A8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5396514D1B72F00ADC9A8 /* OPCache.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CAD5396814D1B72F00ADC9A8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5396914D1B72F00ADC9A8 /* UIKit.framework */,
+				CAD5396B14D1B72F00ADC9A8 /* Foundation.framework */,
+				CAD5396D14D1B72F00ADC9A8 /* CoreGraphics.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		CAD5396F14D1B72F00ADC9A8 /* OPCache */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5398514D1B76000ADC9A8 /* OPCache */,
+				CAD5397014D1B72F00ADC9A8 /* Supporting Files */,
+			);
+			path = OPCache;
+			sourceTree = "<group>";
+		};
+		CAD5397014D1B72F00ADC9A8 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5397814D1B72F00ADC9A8 /* AppDelegate.h */,
+				CAD5397914D1B72F00ADC9A8 /* AppDelegate.m */,
+				CAD5397114D1B72F00ADC9A8 /* OPCache-Info.plist */,
+				CAD5397514D1B72F00ADC9A8 /* main.m */,
+				CAD5397714D1B72F00ADC9A8 /* OPCache-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		CAD5398514D1B76000ADC9A8 /* OPCache */ = {
+			isa = PBXGroup;
+			children = (
+				CAD5398614D1B76000ADC9A8 /* OPCache.h */,
+				CAD5398714D1B76000ADC9A8 /* OPCache.m */,
+			);
+			path = OPCache;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CAD5396414D1B72F00ADC9A8 /* OPCache */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAD5397D14D1B72F00ADC9A8 /* Build configuration list for PBXNativeTarget "OPCache" */;
+			buildPhases = (
+				CAD5396114D1B72F00ADC9A8 /* Sources */,
+				CAD5396214D1B72F00ADC9A8 /* Frameworks */,
+				CAD5396314D1B72F00ADC9A8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OPCache;
+			productName = OPCache;
+			productReference = CAD5396514D1B72F00ADC9A8 /* OPCache.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CAD5395C14D1B72F00ADC9A8 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
+			buildConfigurationList = CAD5395F14D1B72F00ADC9A8 /* Build configuration list for PBXProject "OPCache" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = CAD5395A14D1B72F00ADC9A8;
+			productRefGroup = CAD5396614D1B72F00ADC9A8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CAD5396414D1B72F00ADC9A8 /* OPCache */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CAD5396314D1B72F00ADC9A8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CAD5396114D1B72F00ADC9A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD5397614D1B72F00ADC9A8 /* main.m in Sources */,
+				CAD5397A14D1B72F00ADC9A8 /* AppDelegate.m in Sources */,
+				CAD5398814D1B76000ADC9A8 /* OPCache.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		CAD5397B14D1B72F00ADC9A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		CAD5397C14D1B72F00ADC9A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
+				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CAD5397E14D1B72F00ADC9A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "OPCache/OPCache-Prefix.pch";
+				INFOPLIST_FILE = "OPCache/OPCache-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		CAD5397F14D1B72F00ADC9A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "OPCache/OPCache-Prefix.pch";
+				INFOPLIST_FILE = "OPCache/OPCache-Info.plist";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CAD5395F14D1B72F00ADC9A8 /* Build configuration list for PBXProject "OPCache" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD5397B14D1B72F00ADC9A8 /* Debug */,
+				CAD5397C14D1B72F00ADC9A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CAD5397D14D1B72F00ADC9A8 /* Build configuration list for PBXNativeTarget "OPCache" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD5397E14D1B72F00ADC9A8 /* Debug */,
+				CAD5397F14D1B72F00ADC9A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CAD5395C14D1B72F00ADC9A8 /* Project object */;
+}
