@@ -24,15 +24,21 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 @property (nonatomic, strong) NSMutableDictionary *imageOperationsByCacheKey;
 @property (nonatomic, strong) NSOperationQueue *imageOperationQueue;
 @property (nonatomic, strong) NSMutableDictionary *imageOperationCompletionsByCacheKey;
+
 -(UIImage*) diskImageFromURL:(NSString*)url;
 -(UIImage*) diskImageFromURL:(NSString*)url cacheName:(NSString*)cacheName;
+
 -(NSString*) cacheKeyFromImageURL:(NSString*)url;
 -(NSString*) cacheKeyFromImageURL:(NSString*)url cacheName:(NSString*)cacheName;
+
 -(NSString*) cachePathForImageURL:(NSString*)url;
 -(NSString*) cachePathForImageURL:(NSString*)url cacheName:(NSString*)cacheName;
+
 -(void) cancelFetchForURL:(NSString*)url;
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName;
+
 -(void) cleanUpPersistedImages;
+-(void) processImageData:(NSData*)data with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName;
 @end
 
 @implementation OPCache
@@ -58,111 +64,80 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     if (! (self = [super init]))
         return nil;
     
+    // some reasonable defaults
+    
     self.imagePersistencePath = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject] 
                                  stringByAppendingPathComponent:@"OPCache"];
     self.imagesPersistToDisk = YES;
     self.imagePersistenceTimeInterval = 60.0f * 60.0f * 24.0f * 14.0f; // 2 weeks of disk persistence
+    
     self.ioOperationQueue = [NSOperationQueue new];
     self.ioOperationQueue.maxConcurrentOperationCount = 1;
     self.imageOperationsByCacheKey = [NSMutableDictionary new];
     self.imageOperationQueue = [NSOperationQueue new];
-    self.imageOperationQueue.maxConcurrentOperationCount = 4;
+    self.imageOperationQueue.maxConcurrentOperationCount = 8;
     self.imageOperationCompletionsByCacheKey = [NSMutableDictionary new];
     
+    // remove old disk cached items when app is terminated
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(cleanUpPersistedImages) name:UIApplicationDidEnterBackgroundNotification object:nil];
+    
+    // you would think that NSCache's would be emptied when the app receives memory warnings, but apparently not.
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(removeAllObjects) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
     
     return self;
 }
 
--(void) fetchImageForURL:(NSString*)url completion:(void(^)(UIImage *image, BOOL isCached))completion {
+-(void) fetchImageForURL:(NSString*)url completion:(OPCacheImageCompletionBlock)completion {
     [self fetchImageForURL:url cacheName:kOPCacheDefaultCacheName processing:nil completion:completion];
 }
 
--(void) fetchImageForURL:(NSString *)url cacheName:(NSString *)cacheName processing:(UIImage *(^)(UIImage *))processing completion:(void (^)(UIImage *, BOOL))completion {
+-(void) fetchImageForURL:(NSString *)url cacheName:(NSString *)cacheName processing:(OPCacheImageProcessingBlock)processing completion:(OPCacheImageCompletionBlock)completion {
     
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     
+    // check if image is already cached in memory or on disk
+    id retVal = [self cachedImageForURL:url cacheName:cacheName];
+    if (retVal)
+    {
+        if (completion)
+            __opcache_dispatch_main_queue_asap(^{ completion(retVal, YES); });
+        return ;
+    }
+    
+    // check if the original image is cached on disk so that all we have to do is process it
+    NSData *originalData = [[NSData alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
+    if (originalData)
+    {
+        [self processImageData:originalData with:processing url:url cacheName:cacheName];
+        return ;
+    }
+    
+    // if there is already an operation running for this image, there's nothing to do. we can just wait till it's done
+    if ([self.imageOperationsByCacheKey objectForKey:cacheKey])
+        return ;
+    
+    // if we got this far then we gotta load something from the server. 
+    
+    // keep track of the completion block
     if (! [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
         [self.imageOperationCompletionsByCacheKey setObject:[NSMutableArray new] forKey:cacheKey];
     [[self.imageOperationCompletionsByCacheKey objectForKey:cacheKey] addObject:[completion copy]];
     
-    // check if image is cached in memory
-    id retVal = [self objectForKey:cacheKey];
-    if (retVal)
-    {
-        // call the completion handler on the main thread
-        if (completion) {
-            __opcache_dispatch_main_queue_asap(^{
-                completion(retVal, YES);
-            });
-        }
-    }
-    else
-    {
-        // check if image is cached on disk
-        retVal = [self diskImageFromURL:url cacheName:cacheName];
-        if (retVal)
-        {
-            // call the completion handler on the main thread
-            [self setObject:retVal forKey:cacheKey];
-            if (completion) {
-                __opcache_dispatch_main_queue_asap(^{
-                    completion(retVal, YES);
-                });
-            }
-        }
-        else
-        {
-            // if there is already an operation running for this image, there's nothing to do. we can just wait till it's done
-            if ([self.imageOperationsByCacheKey objectForKey:cacheKey])
-                return ;
-            
-            NSBlockOperation *operation = [NSBlockOperation new];
-            [operation addExecutionBlock:^{
-                
-                // grab the image data from the url
-                NSData *data = [[NSData alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
-                if (! data)
-                    data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url]];
-                
-                // turn the data into an image
-                UIImage *image = [[UIImage alloc] initWithData:data];
-                
-                // process the image if needed
-                if (processing)
-                    image = processing(image);
-                
-                // call the completion handler on the main thread
-                if (completion) {
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        
-                        // call all of the completion handlers associated with this operation
-                        for (OPCacheImageCompletion block in [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
-                            block(image, NO);
-                        
-                        // clean up cache dictionaries
-                        [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
-                        [self.imageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
-                    });
-                }
-                
-                // write the image to disk if needed
-                if (self.imagesPersistToDisk)
-                {
-                    [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
-                        
-                        [data writeToFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey] atomically:YES];
-                        [(NSData*)(processing?UIImagePNGRepresentation(image):data) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] 
-                                                                                      atomically:YES];
-                    }]];
-                }
-                
-            }];
-            operation.threadPriority = 0.1f;
-            [self.imageOperationQueue addOperation:operation];
-            [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
-        }
-    }
+    
+    // construct the image request operation, but don't use any caching mechanism. We handle that ourselves.
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] 
+                                             cachePolicy:NSURLRequestReloadIgnoringLocalCacheData 
+                                         timeoutInterval:10.0f];
+    AFImageRequestOperation *operation = [[AFImageRequestOperation alloc] initWithRequest:request];
+    
+    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, NSData *imageData) {
+        if (imageData)
+            [self processImageData:imageData with:processing url:url cacheName:cacheName];
+    } failure:nil];
+    
+    operation.threadPriority = 0.1f;
+    [self.imageOperationQueue addOperation:operation];
+    [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
 }
 
 -(UIImage*) cachedImageForURL:(NSString*)url {
@@ -184,6 +159,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         retVal = [self diskImageFromURL:url cacheName:cacheName];
         if (retVal)
         {
+            // put image into memory cache
             [self setObject:retVal forKey:cacheKey];
             return retVal;
         }
@@ -210,7 +186,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(NSString*) cacheKeyFromImageURL:(NSString*)url cacheName:(NSString*)cacheName {
-    return [[NSString alloc] initWithFormat:@"OPCache-%@-%u", cacheName?cacheName:kOPCacheDefaultCacheName, [url hash]];
+    return [[NSString alloc] initWithFormat:@"%u-%@", [url hash], cacheName?cacheName:kOPCacheDefaultCacheName];
 }
 
 -(NSString*) cachePathForImageURL:(NSString*)url {
@@ -233,8 +209,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     {
         if ([file hasSuffix:[NSString stringWithFormat:@"%u", [url hash]]])
         {
-            NSString *cacheName = [[file componentsSeparatedByString:@"-"] objectAtIndex:1];
-            [self removeImageForURL:url cacheName:cacheName];
+            NSString *cacheName = [[file componentsSeparatedByString:@"-"] lastObject];
+            if (cacheName)
+                [self removeImageForURL:url cacheName:cacheName];
         }
     }
 }
@@ -253,29 +230,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     [(NSOperation*)[self.imageOperationsByCacheKey objectForKey:cacheKey] cancel];
     [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
-}
-
--(void) cleanUpPersistedImages {
-    
-    // clean up the old image files in the IO queue, and let the OS know this may take some time.
-    UIBackgroundTaskIdentifier taskIdentifier = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:nil];
-    [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
-        
-        NSDate *cutoff = [NSDate dateWithTimeIntervalSinceNow:-self.imagePersistenceTimeInterval];
-        NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:self.imagePersistencePath];
-        NSString *file = nil;
-        while (file = [enumerator nextObject])
-        {
-            NSString *filePath = [self.imagePersistencePath stringByAppendingPathComponent:file];
-            NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:NULL];
-            if ([cutoff compare:[attributes objectForKey:NSFileModificationDate]] == NSOrderedDescending)
-            {
-                [[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL];
-            }
-        }
-        
-        [[UIApplication sharedApplication] endBackgroundTask:taskIdentifier];
-    }]];
 }
 
 +(UIImage*(^)(UIImage *image)) resizeProcessingBlock:(CGSize)size {
@@ -315,11 +269,82 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
             newImage = [UIImage imageWithCGImage:sourceImageRef scale:1.0f orientation:image.imageOrientation];
             [newImage drawInRect:CGRectMake(0.0f, 0.0f, targetWidth, targetHeight)];
             newImage = UIGraphicsGetImageFromCurrentImageContext();
+            CFRelease(sourceImageRef);
         }
         UIGraphicsEndImageContext();
         return newImage;
         
     } copy];
+}
+
+#pragma mark -
+#pragma mark Private methods
+#pragma mark -
+
+-(void) cleanUpPersistedImages {
+    
+    // clean up the old image files in the IO queue, and let the OS know this may take some time.
+    UIBackgroundTaskIdentifier taskIdentifier = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:nil];
+    [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
+        
+        NSDate *cutoff = [NSDate dateWithTimeIntervalSinceNow:-self.imagePersistenceTimeInterval];
+        NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:self.imagePersistencePath];
+        NSString *file = nil;
+        while (file = [enumerator nextObject])
+        {
+            NSString *filePath = [self.imagePersistencePath stringByAppendingPathComponent:file];
+            NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:NULL];
+            if ([cutoff compare:[attributes objectForKey:NSFileModificationDate]] == NSOrderedDescending)
+            {
+                [[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL];
+            }
+        }
+        
+        [[UIApplication sharedApplication] endBackgroundTask:taskIdentifier];
+    }]];
+}
+
+-(void) processImageData:(NSData*)data with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName {
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
+        
+        // create the image out of the data
+        UIImage *image = [[UIImage alloc] initWithData:data];
+        if (! image)
+            return ;
+        
+        // process the image if needed
+        if (processing)
+            image = processing(image);
+        if (! image)
+            return ;
+        
+        NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
+        
+        // call all the completion blocks on the main queue
+        __opcache_dispatch_main_queue_asap(^{
+            for (OPCacheImageCompletionBlock completion in [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
+                completion(image, NO);
+            
+            [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
+            [self.imageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
+        });
+        
+        // save the image data to the disk
+        if (self.imagesPersistToDisk)
+        {
+            NSBlockOperation *ioOperation = [NSBlockOperation blockOperationWithBlock:^{
+                
+                NSString *originalFilePath = [self cachePathForImageURL:url cacheName:kOPCacheOriginalKey];
+                if (! [[NSFileManager defaultManager] fileExistsAtPath:originalFilePath])
+                    [data writeToFile:originalFilePath atomically:YES];
+                
+                [UIImagePNGRepresentation(image) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] atomically:YES];
+            }];
+            ioOperation.threadPriority = 0.1f;
+            [self.ioOperationQueue addOperation:ioOperation];
+        }
+    });
 }
 
 @end

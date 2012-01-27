@@ -6,7 +6,7 @@
 //  Copyright (c) 2012 Opetopic. All rights reserved.
 //
 
-typedef void (^OPCacheImageCompletion)(UIImage *image, BOOL isCached);
+typedef void (^OPCacheImageCompletionBlock)(UIImage *image, BOOL isCached);
 typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
 
 #import <Foundation/Foundation.h>
@@ -23,11 +23,11 @@ typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
  Fetching an image from an external source, optionally processing it, and then
  stuffing it into a memory cache and disk cache.
  */
--(void) fetchImageForURL:(NSString*)url completion:(OPCacheImageCompletion)completion;
+-(void) fetchImageForURL:(NSString*)url completion:(OPCacheImageCompletionBlock)completion;
 -(void) fetchImageForURL:(NSString*)url 
                cacheName:(NSString*)cacheName 
               processing:(OPCacheImageProcessingBlock)processing
-              completion:(OPCacheImageCompletion)completion;
+              completion:(OPCacheImageCompletionBlock)completion;
 
 /**
  Grabbing an image from the cache without attempting to load it externally.
