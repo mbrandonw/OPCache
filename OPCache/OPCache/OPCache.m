@@ -230,6 +230,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     [(NSOperation*)[self.imageOperationsByCacheKey objectForKey:cacheKey] cancel];
     [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
+    [self.imageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
 }
 
 +(UIImage*(^)(UIImage *image)) resizeProcessingBlock:(CGSize)size {
