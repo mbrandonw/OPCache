@@ -264,7 +264,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                                        targetWidth/scaleFactor, targetHeight/scaleFactor);
         
         UIImage *newImage = nil;
-        UIGraphicsBeginImageContextWithOptions(size, NO, 1.0f);
+        UIGraphicsBeginImageContextWithOptions(size, YES, 1.0f);
         {
             CGImageRef sourceImageRef = CGImageCreateWithImageInRect(image.CGImage, sourceRect);
             newImage = [UIImage imageWithCGImage:sourceImageRef scale:1.0f orientation:image.imageOrientation];
