@@ -93,6 +93,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 
 -(void) fetchImageForURL:(NSString *)url cacheName:(NSString *)cacheName processing:(OPCacheImageProcessingBlock)processing completion:(OPCacheImageCompletionBlock)completion {
     
+    // early out on bad data
+    if (! url)    return ;
+    
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     
     // check if image is already cached in memory or on disk
@@ -203,6 +206,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 
 -(void) removeAllImagesForURL:(NSString*)url {
     
+    // early out on bad data
+    if (! url)    return ;
+    
     NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:self.imagePersistencePath];
     NSString *file = nil;
     while (file = [enumerator nextObject])
@@ -227,6 +233,10 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName {
+    
+    // early out on bad data
+    if (! url)    return ;
+    
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     [(NSOperation*)[self.imageOperationsByCacheKey objectForKey:cacheKey] cancel];
     [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
