@@ -38,7 +38,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName;
 
 -(void) cleanUpPersistedImages;
--(void) processImageData:(NSData*)data with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName;
+-(void) processImage:(UIImage*)data with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName;
 @end
 
 @implementation OPCache
@@ -108,10 +108,10 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     }
     
     // check if the original image is cached on disk so that all we have to do is process it
-    NSData *originalData = [[NSData alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
-    if (originalData)
+    UIImage *originalImage = [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
+    if (originalImage)
     {
-        [self processImageData:originalData with:processing url:url cacheName:cacheName];
+        [self processImage:originalImage with:processing url:url cacheName:cacheName];
         return ;
     }
     
@@ -133,9 +133,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                                          timeoutInterval:10.0f];
     AFImageRequestOperation *operation = [[AFImageRequestOperation alloc] initWithRequest:request];
     
-    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, NSData *imageData) {
-        if (imageData)
-            [self processImageData:imageData with:processing url:url cacheName:cacheName];
+    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, UIImage *image) {
+        if (image)
+            [self processImage:image with:processing url:url cacheName:cacheName];
     } failure:nil];
     
     operation.threadPriority = 0.1f;
@@ -315,16 +315,14 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     }]];
 }
 
--(void) processImageData:(NSData*)data with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName {
+-(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName {
     
+    if (! originalImage)
+        return ;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
         
-        // create the image out of the data
-        UIImage *image = [[UIImage alloc] initWithData:data];
-        if (! image)
-            return ;
-        
         // process the image if needed
+        UIImage *image = originalImage;
         if (processing)
             image = processing(image);
         if (! image)
@@ -346,10 +344,12 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         {
             NSBlockOperation *ioOperation = [NSBlockOperation blockOperationWithBlock:^{
                 
+                // cache the original image
                 NSString *originalFilePath = [self cachePathForImageURL:url cacheName:kOPCacheOriginalKey];
                 if (! [[NSFileManager defaultManager] fileExistsAtPath:originalFilePath])
-                    [data writeToFile:originalFilePath atomically:YES];
+                    [UIImagePNGRepresentation(originalImage) writeToFile:originalFilePath atomically:YES];
                 
+                // cache the processed image
                 [UIImagePNGRepresentation(image) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] atomically:YES];
             }];
             ioOperation.threadPriority = 0.1f;
