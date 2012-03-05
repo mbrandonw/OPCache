@@ -131,14 +131,18 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] 
                                              cachePolicy:NSURLRequestReloadIgnoringLocalCacheData 
                                          timeoutInterval:10.0f];
-    AFImageRequestOperation *operation = [[AFImageRequestOperation alloc] initWithRequest:request];
-    
-    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, UIImage *image) {
+    AFImageRequestOperation *operation = [AFImageRequestOperation imageRequestOperationWithRequest:request imageProcessingBlock:nil cacheName:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
+        
         if (image)
             [self processImage:image with:processing url:url cacheName:cacheName];
-    } failure:nil];
-    
+    } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error) {
+        
+        [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
+        [self.imageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
+    }];
+    operation.imageScale = 1.0f;
     operation.threadPriority = 0.1f;
+    
     [self.imageOperationQueue addOperation:operation];
     [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
 }
@@ -347,10 +351,10 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 // cache the original image
                 NSString *originalFilePath = [self cachePathForImageURL:url cacheName:kOPCacheOriginalKey];
                 if (! [[NSFileManager defaultManager] fileExistsAtPath:originalFilePath])
-                    [UIImagePNGRepresentation(originalImage) writeToFile:originalFilePath atomically:YES];
+                    [UIImageJPEGRepresentation(originalImage, 0.9f) writeToFile:originalFilePath atomically:YES];
                 
                 // cache the processed image
-                [UIImagePNGRepresentation(image) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] atomically:YES];
+                [UIImageJPEGRepresentation(image, 0.9f) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] atomically:YES];
             }];
             ioOperation.threadPriority = 0.1f;
             [self.ioOperationQueue addOperation:ioOperation];
