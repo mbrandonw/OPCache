@@ -107,6 +107,11 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         return ;
     }
     
+    // keep track of the completion block
+    if (! [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
+        [self.imageOperationCompletionsByCacheKey setObject:[NSMutableArray new] forKey:cacheKey];
+    [[self.imageOperationCompletionsByCacheKey objectForKey:cacheKey] addObject:[completion copy]];
+    
     // check if the original image is cached on disk so that all we have to do is process it
     UIImage *originalImage = [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
     if (originalImage)
@@ -120,12 +125,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         return ;
     
     // if we got this far then we gotta load something from the server. 
-    
-    // keep track of the completion block
-    if (! [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
-        [self.imageOperationCompletionsByCacheKey setObject:[NSMutableArray new] forKey:cacheKey];
-    [[self.imageOperationCompletionsByCacheKey objectForKey:cacheKey] addObject:[completion copy]];
-    
     
     // construct the image request operation, but don't use any caching mechanism. We handle that ourselves.
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] 
