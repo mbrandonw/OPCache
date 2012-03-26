@@ -320,9 +320,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 
 -(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName {
     
-    if (! originalImage)
-        return ;
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         
         // process the image if needed
         UIImage *image = originalImage;
