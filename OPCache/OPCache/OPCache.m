@@ -248,6 +248,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 
 +(UIImage*(^)(UIImage *image)) resizeProcessingBlock:(CGSize)size {
     
+    size.width *= [[UIScreen mainScreen] scale];
+    size.height *= [[UIScreen mainScreen] scale];
+    
     return [(UIImage*)^(UIImage *image){
         
         CGFloat sourceWidth = image.size.width;
