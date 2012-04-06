@@ -6,7 +6,7 @@
 //  Copyright (c) 2012 Opetopic. All rights reserved.
 //
 
-typedef void (^OPCacheImageCompletionBlock)(UIImage *image, BOOL isCached);
+typedef void (^OPCacheImageCompletionBlock)(UIImage *image, BOOL fromCache);
 typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
 
 #import <Foundation/Foundation.h>

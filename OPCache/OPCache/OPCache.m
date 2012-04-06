@@ -192,7 +192,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(NSString*) cacheKeyFromImageURL:(NSString*)url cacheName:(NSString*)cacheName {
-    return [[NSString alloc] initWithFormat:@"%u-%@", [url hash], cacheName?cacheName:kOPCacheDefaultCacheName];
+    return [[NSString alloc] initWithFormat:@"%lu-%@", [url hash], cacheName?cacheName:kOPCacheDefaultCacheName];
 }
 
 -(NSString*) cachePathForImageURL:(NSString*)url {
@@ -216,7 +216,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     NSString *file = nil;
     while (file = [enumerator nextObject])
     {
-        if ([file hasSuffix:[NSString stringWithFormat:@"%u", [url hash]]])
+        if ([file hasSuffix:[NSString stringWithFormat:@"%lu", [url hash]]])
         {
             NSString *cacheName = [[file componentsSeparatedByString:@"-"] lastObject];
             if (cacheName)
