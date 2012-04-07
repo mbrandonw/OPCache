@@ -324,7 +324,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         if (! image)
             return ;
         
+        // stick the processed image into memory cache
         NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
+        [self setObject:image forKey:cacheKey];
         
         // call all the completion blocks on the main queue
         __opcache_dispatch_main_queue_asap(^{
