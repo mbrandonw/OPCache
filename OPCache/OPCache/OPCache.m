@@ -102,9 +102,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         return ;
     }
     
-    NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     
     // check if the original image is cached on disk so that all we have to do is process it
+    NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     UIImage *originalImage = [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
     if (originalImage)
     {
@@ -191,7 +191,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(NSString*) cachePathForImageURL:(NSString*)url cacheName:(NSString*)cacheName {
-    return [self.imagePersistencePath stringByAppendingPathComponent:[self cacheKeyFromImageURL:url cacheName:cacheName]];
+    return [[self.imagePersistencePath stringByAppendingPathComponent:[self cacheKeyFromImageURL:url cacheName:cacheName]] stringByAppendingPathExtension:@"jpg"];
 }
 
 -(void) removeImageForURL:(NSString*)url {
