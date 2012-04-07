@@ -104,7 +104,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     
     
     // check if the original image is cached on disk so that all we have to do is process it
-    NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     UIImage *originalImage = [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
     if (originalImage)
     {
@@ -113,21 +112,18 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     }
     
     // if there is already an operation running for this image, there's nothing to do. we can just wait till it's done
+    NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     if ([self.imageOperationsByCacheKey objectForKey:cacheKey])
         return ;
     
     // if we got this far then we gotta load something from the server. 
     
     // construct the image request operation, but don't use any caching mechanism. We handle that ourselves.
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] 
-                                             cachePolicy:NSURLRequestReloadIgnoringLocalCacheData 
-                                         timeoutInterval:10.0f];
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10.0f];
     AFImageRequestOperation *operation = [AFImageRequestOperation imageRequestOperationWithRequest:request imageProcessingBlock:nil cacheName:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
-        
         if (image)
             [self processImage:image with:processing url:url cacheName:cacheName completion:completion];
     } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error) {
-        
         [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
     }];
     operation.imageScale = 1.0f;
