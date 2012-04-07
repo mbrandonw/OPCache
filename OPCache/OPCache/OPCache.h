@@ -13,6 +13,7 @@ typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
 
 @interface OPCache : NSCache
 
+@property (nonatomic, strong, readonly) NSOperationQueue *ioOperationQueue;
 @property (nonatomic, assign) BOOL imagesPersistToDisk;
 @property (nonatomic, strong) NSString *imagePersistencePath;
 @property (nonatomic, assign) NSTimeInterval imagePersistenceTimeInterval;

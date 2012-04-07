@@ -20,10 +20,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 @interface OPCache (/**/)
-@property (nonatomic, strong) NSOperationQueue *ioOperationQueue;
+@property (nonatomic, strong, readwrite) NSOperationQueue *ioOperationQueue;
 @property (nonatomic, strong) NSMutableDictionary *imageOperationsByCacheKey;
 @property (nonatomic, strong) NSOperationQueue *imageOperationQueue;
-@property (nonatomic, strong) NSMutableDictionary *imageOperationCompletionsByCacheKey;
 
 -(UIImage*) diskImageFromURL:(NSString*)url;
 -(UIImage*) diskImageFromURL:(NSString*)url cacheName:(NSString*)cacheName;
@@ -38,7 +37,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName;
 
 -(void) cleanUpPersistedImages;
--(void) processImage:(UIImage*)data with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName;
+-(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName completion:(OPCacheImageCompletionBlock)completion;
 @end
 
 @implementation OPCache
@@ -49,7 +48,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 @synthesize ioOperationQueue = _ioOperationQueue;
 @synthesize imageOperationsByCacheKey = _imageOperationsByCacheKey;
 @synthesize imageOperationQueue = _imageOperationQueue;
-@synthesize imageOperationCompletionsByCacheKey = _imageOperationCompletionsByCacheKey;
 
 +(id) sharedCache {
     static OPCache *__sharedCache = nil;
@@ -76,7 +74,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     self.imageOperationsByCacheKey = [NSMutableDictionary new];
     self.imageOperationQueue = [NSOperationQueue new];
     self.imageOperationQueue.maxConcurrentOperationCount = 8;
-    self.imageOperationCompletionsByCacheKey = [NSMutableDictionary new];
     
     // remove old disk cached items when app is terminated
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(cleanUpPersistedImages) name:UIApplicationDidEnterBackgroundNotification object:nil];
@@ -96,8 +93,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     // early out on bad data
     if (! url)    return ;
     
-    NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
-    
     // check if image is already cached in memory or on disk
     id retVal = [self cachedImageForURL:url cacheName:cacheName];
     if (retVal)
@@ -107,16 +102,13 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         return ;
     }
     
-    // keep track of the completion block
-    if (! [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
-        [self.imageOperationCompletionsByCacheKey setObject:[NSMutableArray new] forKey:cacheKey];
-    [[self.imageOperationCompletionsByCacheKey objectForKey:cacheKey] addObject:[completion copy]];
+    NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     
     // check if the original image is cached on disk so that all we have to do is process it
     UIImage *originalImage = [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
     if (originalImage)
     {
-        [self processImage:originalImage with:processing url:url cacheName:cacheName];
+        [self processImage:originalImage with:processing url:url cacheName:cacheName completion:completion];
         return ;
     }
     
@@ -133,11 +125,10 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     AFImageRequestOperation *operation = [AFImageRequestOperation imageRequestOperationWithRequest:request imageProcessingBlock:nil cacheName:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
         
         if (image)
-            [self processImage:image with:processing url:url cacheName:cacheName];
+            [self processImage:image with:processing url:url cacheName:cacheName completion:completion];
     } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error) {
         
         [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
-        [self.imageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
     }];
     operation.imageScale = 1.0f;
     operation.threadPriority = 0.1f;
@@ -243,7 +234,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     [(NSOperation*)[self.imageOperationsByCacheKey objectForKey:cacheKey] cancel];
     [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
-    [self.imageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
 }
 
 +(UIImage*(^)(UIImage *image)) resizeProcessingBlock:(CGSize)size {
@@ -276,8 +266,10 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         }
         CGFloat scaleFactor = scaledHeight / sourceHeight;
         
-        CGRect sourceRect = CGRectMake(roundf(scaledWidth-targetWidth)/2.0f/scaleFactor, (scaledHeight-targetHeight)/2.0f/scaleFactor, 
-                                       targetWidth/scaleFactor, targetHeight/scaleFactor);
+        CGRect sourceRect = CGRectMake(roundf(scaledWidth-targetWidth)/2.0f/scaleFactor, 
+                                       (scaledHeight-targetHeight)/2.0f/scaleFactor, 
+                                       targetWidth/scaleFactor, 
+                                       targetHeight/scaleFactor);
         
         UIImage *newImage = nil;
         UIGraphicsBeginImageContextWithOptions(size, YES, 1.0f);
@@ -321,7 +313,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     }]];
 }
 
--(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName {
+-(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName completion:(OPCacheImageCompletionBlock)completion {
     
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         
@@ -336,11 +328,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         
         // call all the completion blocks on the main queue
         __opcache_dispatch_main_queue_asap(^{
-            for (OPCacheImageCompletionBlock completion in [self.imageOperationCompletionsByCacheKey objectForKey:cacheKey])
-                completion(image, NO);
             
+            completion(image, NO);
             [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
-            [self.imageOperationCompletionsByCacheKey removeObjectForKey:cacheKey];
         });
         
         // save the image data to the disk
