@@ -80,6 +80,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     
     // you would think that NSCache's would be emptied when the app receives memory warnings, but apparently not.
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(removeAllObjects) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(removeAllObjects) name:UIApplicationDidEnterBackgroundNotification object:nil];
     
     return self;
 }
