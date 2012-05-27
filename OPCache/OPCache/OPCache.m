@@ -128,7 +128,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
     }];
     operation.imageScale = 1.0f;
-    operation.threadPriority = 0.1f;
     
     [self.imageOperationQueue addOperation:operation];
     [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
