@@ -141,7 +141,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     
     // first try finding the image in memory cache
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
-    id retVal = [self objectForKey:cacheKey];
+    UIImage *retVal = [self objectForKey:cacheKey];
     if (retVal)
     {
         return retVal;
@@ -153,7 +153,8 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         if (retVal)
         {
             // put image into memory cache
-            [self setObject:retVal forKey:cacheKey];
+            size_t size = CGImageGetBytesPerRow(retVal.CGImage) * CGImageGetHeight(retVal.CGImage);
+            [self setObject:retVal forKey:cacheKey cost:size];
             return retVal;
         }
     }
