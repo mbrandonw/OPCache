@@ -296,13 +296,14 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         NSDate *cutoff = [NSDate dateWithTimeIntervalSinceNow:-self.imagePersistenceTimeInterval];
         NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:self.imagePersistencePath];
         NSString *file = nil;
-        while (file = [enumerator nextObject])
-        {
-            NSString *filePath = [self.imagePersistencePath stringByAppendingPathComponent:file];
-            NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:NULL];
-            if ([cutoff compare:[attributes objectForKey:NSFileModificationDate]] == NSOrderedDescending)
-            {
-                [[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL];
+        while (file = [enumerator nextObject]) {
+            @autoreleasepool {
+                NSString *filePath = [self.imagePersistencePath stringByAppendingPathComponent:file];
+                NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:NULL];
+                if ([cutoff compare:[attributes objectForKey:NSFileModificationDate]] == NSOrderedDescending)
+                {
+                    [[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL];
+                }
             }
         }
         
