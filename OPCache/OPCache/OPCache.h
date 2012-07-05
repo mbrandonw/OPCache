@@ -17,6 +17,7 @@ typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
 @property (nonatomic, assign) BOOL imagesPersistToDisk;
 @property (nonatomic, strong) NSString *imagePersistencePath;
 @property (nonatomic, assign) NSTimeInterval imagePersistenceTimeInterval;
+@property (nonatomic, assign) NSUInteger imagePersistenceMemoryThreshold;
 
 +(id) sharedCache;
 

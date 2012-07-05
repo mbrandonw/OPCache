@@ -23,6 +23,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 @property (nonatomic, strong, readwrite) NSOperationQueue *ioOperationQueue;
 @property (nonatomic, strong) NSMutableDictionary *imageOperationsByCacheKey;
 @property (nonatomic, strong) NSOperationQueue *imageOperationQueue;
+@property (nonatomic, strong) NSMutableDictionary *imageFileAttributes;
 
 -(UIImage*) diskImageFromURL:(NSString*)url;
 -(UIImage*) diskImageFromURL:(NSString*)url cacheName:(NSString*)cacheName;
@@ -37,6 +38,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName;
 
 -(void) cleanUpPersistedImages;
+-(void) flushImageFileAttributesToDisk;
 -(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName completion:(OPCacheImageCompletionBlock)completion;
 @end
 
@@ -45,9 +47,11 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 @synthesize imagesPersistToDisk = _imagesPersistToDisk;
 @synthesize imagePersistencePath = _imagePersistencePath;
 @synthesize imagePersistenceTimeInterval = _imagePersistenceTimeInterval;
+@synthesize imagePersistenceMemoryThreshold = _imagePersistenceMemoryThreshold;
 @synthesize ioOperationQueue = _ioOperationQueue;
 @synthesize imageOperationsByCacheKey = _imageOperationsByCacheKey;
 @synthesize imageOperationQueue = _imageOperationQueue;
+@synthesize imageFileAttributes = _imageFileAttributes;
 
 +(id) sharedCache {
     static OPCache *__sharedCache = nil;
@@ -67,7 +71,8 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     self.imagePersistencePath = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject] 
                                  stringByAppendingPathComponent:@"OPCache"];
     self.imagesPersistToDisk = YES;
-    self.imagePersistenceTimeInterval = 60.0f * 60.0f * 24.0f * 14.0f; // 2 weeks of disk persistence
+    self.imagePersistenceTimeInterval = 60.0 * 60.0 * 24.0 * 14.0; // 2 weeks of disk persistence
+    self.imagePersistenceMemoryThreshold = ((NSUInteger)[[UIScreen mainScreen] scale] * 20) * 1024 * 1024;
     
     self.ioOperationQueue = [NSOperationQueue new];
     self.ioOperationQueue.maxConcurrentOperationCount = 1;
@@ -293,22 +298,50 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     UIBackgroundTaskIdentifier taskIdentifier = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:nil];
     [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
         
+        NSMutableSet *removableFilePaths = [NSMutableSet new];
+        __block NSUInteger totalSize = 0;
+        
+        // grab all of the image files that have expired dates
         NSDate *cutoff = [NSDate dateWithTimeIntervalSinceNow:-self.imagePersistenceTimeInterval];
-        NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:self.imagePersistencePath];
-        NSString *file = nil;
-        while (file = [enumerator nextObject]) {
-            @autoreleasepool {
-                NSString *filePath = [self.imagePersistencePath stringByAppendingPathComponent:file];
-                NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:NULL];
-                if ([cutoff compare:[attributes objectForKey:NSFileModificationDate]] == NSOrderedDescending)
-                {
-                    [[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL];
-                }
-            }
-        }
+        [self.imageFileAttributes enumerateKeysAndObjectsUsingBlock:^(NSString *filePath, NSDictionary *attributes, BOOL *stop) {
+            if ([(NSDate*)[attributes objectForKey:@"date"] compare:cutoff] == NSOrderedAscending)
+                [removableFilePaths addObject:filePath];
+            totalSize += [[attributes objectForKey:@"length"] unsignedIntegerValue];
+        }];
+        
+        // grab all the largest images that put the total cache size over our threshold
+        NSArray *filePathsSortedBySize = [[self.imageFileAttributes allKeys] sortedArrayUsingComparator:^NSComparisonResult(id key1, id key2) {
+            return [[[self.imageFileAttributes objectForKey:key2] objectForKey:@"length"] 
+                    compare:[[self.imageFileAttributes objectForKey:key1] objectForKey:@"length"]];
+        }];
+        [filePathsSortedBySize enumerateObjectsUsingBlock:^(NSString *filePath, NSUInteger idx, BOOL *stop) {
+            totalSize -= [[[self.imageFileAttributes objectForKey:filePath] objectForKey:@"length"] unsignedIntegerValue];
+            if (totalSize > self.imagePersistenceMemoryThreshold)
+                [removableFilePaths addObject:filePath];
+            if (totalSize < self.imagePersistenceMemoryThreshold)
+                *stop = YES;
+        }];
+        
+        // remove those images from disk
+        [removableFilePaths enumerateObjectsUsingBlock:^(NSString *filePath, BOOL *stop) {
+            [[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL];
+            [self.imageFileAttributes removeObjectForKey:filePath];
+        }];
+        [self flushImageFileAttributesToDisk];
         
         [[UIApplication sharedApplication] endBackgroundTask:taskIdentifier];
     }]];
+}
+
+-(void) flushImageFileAttributesToDisk {
+    
+    NSString *directoryPath = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) lastObject]
+                               stringByAppendingPathComponent:@"OPCache"];
+    [[NSFileManager defaultManager] createDirectoryAtPath:directoryPath withIntermediateDirectories:YES attributes:nil error:NULL];
+    
+    NSString *filePath = [directoryPath stringByAppendingPathComponent:@"imageFileAttributes.plist"];
+    [self.imageFileAttributes writeToFile:filePath atomically:YES];
+    self.imageFileAttributes = nil;
 }
 
 -(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName completion:(OPCacheImageCompletionBlock)completion {
@@ -341,15 +374,50 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 // cache the original image
                 NSString *originalFilePath = [self cachePathForImageURL:url cacheName:kOPCacheOriginalKey];
                 if (! [[NSFileManager defaultManager] fileExistsAtPath:originalFilePath])
-                    [UIImageJPEGRepresentation(originalImage, 0.9f) writeToFile:originalFilePath atomically:YES];
+                {
+                    NSData *imageData = UIImageJPEGRepresentation(originalImage, 0.9f);
+                    NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+                                                [NSNumber numberWithUnsignedInteger:[imageData length]], @"length",
+                                                [NSDate date], @"date", nil];
+                    [self.imageFileAttributes setObject:attributes forKey:originalFilePath];
+                    [imageData writeToFile:originalFilePath atomically:YES];
+                }
                 
                 // cache the processed image
-                [UIImageJPEGRepresentation(image, 0.9f) writeToFile:[self cachePathForImageURL:url cacheName:cacheName] atomically:YES];
+                NSData *imageData = UIImageJPEGRepresentation(image, 0.9f);
+                NSString *filePath = [self cachePathForImageURL:url cacheName:cacheName];
+                NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+                                            [NSNumber numberWithUnsignedInteger:[imageData length]], @"length",
+                                            [NSDate date], @"date", nil];
+                [self.imageFileAttributes setObject:attributes forKey:filePath];
+                [imageData writeToFile:filePath atomically:YES];
             }];
             ioOperation.threadPriority = 0.1f;
             [self.ioOperationQueue addOperation:ioOperation];
         }
     });
+}
+
+-(NSDictionary*) imageFileAttributes {
+    if (! _imageFileAttributes)
+    {
+        NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) lastObject]
+                              stringByAppendingPathComponent:@"OPCache/imageFileAttributes.plist"];
+        _imageFileAttributes = [NSMutableDictionary dictionaryWithContentsOfFile:filePath];
+        
+        if (! _imageFileAttributes)
+            _imageFileAttributes = [NSMutableDictionary new];
+    }
+    return _imageFileAttributes;
+}
+
+#pragma mark -
+#pragma mark Overridden NSCache methods
+#pragma mark -
+
+-(void) removeAllObjects {
+    [super removeAllObjects];
+    [self flushImageFileAttributesToDisk];
 }
 
 @end
