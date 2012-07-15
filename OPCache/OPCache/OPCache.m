@@ -323,8 +323,8 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         
         // remove those images from disk
         [removableFilePaths enumerateObjectsUsingBlock:^(NSString *filePath, BOOL *stop) {
-            [[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL];
-            [self.imageFileAttributes removeObjectForKey:filePath];
+            if ([[NSFileManager defaultManager] removeItemAtPath:filePath error:NULL])
+                [self.imageFileAttributes removeObjectForKey:filePath];
         }];
         [self flushImageFileAttributesToDisk];
         
