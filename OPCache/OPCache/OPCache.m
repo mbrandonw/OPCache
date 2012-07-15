@@ -333,14 +333,16 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(void) flushImageFileAttributesToDisk {
-    
-    NSString *directoryPath = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) lastObject]
-                               stringByAppendingPathComponent:@"OPCache"];
-    [[NSFileManager defaultManager] createDirectoryAtPath:directoryPath withIntermediateDirectories:YES attributes:nil error:NULL];
-    
-    NSString *filePath = [directoryPath stringByAppendingPathComponent:@"imageFileAttributes.plist"];
-    [self.imageFileAttributes writeToFile:filePath atomically:YES];
-    self.imageFileAttributes = nil;
+    if (_imageFileAttributes)
+    {
+        NSString *directoryPath = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) lastObject]
+                                   stringByAppendingPathComponent:@"OPCache"];
+        [[NSFileManager defaultManager] createDirectoryAtPath:directoryPath withIntermediateDirectories:YES attributes:nil error:NULL];
+        
+        NSString *filePath = [directoryPath stringByAppendingPathComponent:@"imageFileAttributes.plist"];
+        [self.imageFileAttributes writeToFile:filePath atomically:YES];
+        self.imageFileAttributes = nil;
+    }
 }
 
 -(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName completion:(OPCacheImageCompletionBlock)completion {
@@ -416,7 +418,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 
 -(void) removeAllObjects {
     [super removeAllObjects];
-    [self flushImageFileAttributesToDisk];
 }
 
 @end
