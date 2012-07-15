@@ -176,8 +176,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(UIImage*) diskImageFromURL:(NSString*)url cacheName:(NSString*)cacheName {
-    NSData *data = [[NSData alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:cacheName]];
-    return [[UIImage alloc] initWithData:data];
+    return [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:cacheName]];
 }
 
 -(NSString*) cacheKeyFromImageURL:(NSString*)url {
