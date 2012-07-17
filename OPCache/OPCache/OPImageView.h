@@ -7,6 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "OPCache.h"
 
 typedef enum {
     OPImageViewAnimationNone,
@@ -21,6 +22,14 @@ typedef enum {
 
 -(void) loadImageURL:(NSString*)url;
 -(void) loadImageURL:(NSString*)url placeholder:(UIImage*)placeholder;
--(void) loadImageURL:(NSString*)url placeholder:(UIImage*)placeholder cacheName:(NSString*)cacheName processing:(UIImage*(^)(UIImage *image))processing;
+-(void) loadImageURL:(NSString*)url 
+         placeholder:(UIImage*)placeholder 
+           cacheName:(NSString*)cacheName 
+          processing:(UIImage*(^)(UIImage *image))processing;
+-(void) loadImageURL:(NSString*)url 
+         placeholder:(UIImage*)placeholder 
+           cacheName:(NSString*)cacheName 
+          processing:(UIImage*(^)(UIImage *image))processing
+          completion:(OPCacheImageCompletionBlock)completion;
 
 @end

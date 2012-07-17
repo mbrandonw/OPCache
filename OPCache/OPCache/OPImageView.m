@@ -32,6 +32,14 @@
 }
 
 -(void) loadImageURL:(NSString*)url placeholder:(UIImage*)placeholder cacheName:(NSString*)cacheName processing:(UIImage*(^)(UIImage *image))processing {
+    [self loadImageURL:url placeholder:placeholder cacheName:cacheName processing:processing completion:nil];
+}
+
+-(void) loadImageURL:(NSString*)url 
+         placeholder:(UIImage*)placeholder 
+           cacheName:(NSString*)cacheName 
+          processing:(UIImage*(^)(UIImage *image))processing
+          completion:(OPCacheImageCompletionBlock)completion {
     
     [self.cancelHandle cancel];
     
@@ -43,13 +51,13 @@
         [self setNeedsLayout];
         [self.superview setNeedsLayout];
         
-        if (! fromCache && image && self.animation == OPImageViewAnimationFade)
-        {
-            self.alpha = 0.0f;
-            [UIView animateWithDuration:0.3f animations:^{
-                self.alpha = 1.0f;
-            }];
-        }
+        if (completion)
+            completion(image, fromCache);
+        
+        self.alpha = 0.0f;
+        [UIView animateWithDuration:0.3f*(!fromCache)*(self.animation == OPImageViewAnimationFade) animations:^{
+            self.alpha = 1.0f;
+        }];
     }];
 }
 
