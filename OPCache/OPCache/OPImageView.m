@@ -21,6 +21,7 @@
 -(void) cancel {
     [self.cancelHandle cancel];
     self.cancelHandle = nil;
+    self.image = nil;
 }
 
 -(void) loadImageURL:(NSString*)url {
