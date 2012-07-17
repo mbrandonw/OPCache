@@ -62,4 +62,9 @@
     }];
 }
 
+-(void) didMoveToWindow {
+    if (! self.window)
+        [self cancel];
+}
+
 @end
