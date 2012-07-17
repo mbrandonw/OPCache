@@ -21,7 +21,6 @@
 -(void) cancel {
     [[OPCache sharedCache] cancelFetchForHandle:self.cancelHandle];
     self.cancelHandle = nil;
-    self.image = nil;
 }
 
 -(void) loadImageURL:(NSString*)url {
