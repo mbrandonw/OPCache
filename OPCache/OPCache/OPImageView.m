@@ -42,11 +42,10 @@
           processing:(UIImage*(^)(UIImage *image))processing
           completion:(OPCacheImageCompletionBlock)completion {
     
-    [self.cancelHandle cancel];
-    
+    [self cancel];
     self.image = placeholder;
     
-    [[OPCache sharedCache] fetchImageForURL:url cacheName:cacheName processing:processing completion:^(UIImage *image, BOOL fromCache) {
+    self.cancelHandle = [[OPCache sharedCache] fetchImageForURL:url cacheName:cacheName processing:processing completion:^(UIImage *image, BOOL fromCache) {
         
         self.image = image;
         [self setNeedsLayout];
