@@ -19,7 +19,7 @@
 @synthesize cancelHandle = _cancelHandle;
 
 -(void) cancel {
-    [self.cancelHandle cancel];
+    [[OPCache sharedCache] cancelFetchForHandle:self.cancelHandle];
     self.cancelHandle = nil;
     self.image = nil;
 }
@@ -50,6 +50,7 @@
         self.image = image;
         [self setNeedsLayout];
         [self.superview setNeedsLayout];
+        self.cancelHandle = nil;
         
         if (completion)
             completion(image, fromCache);
