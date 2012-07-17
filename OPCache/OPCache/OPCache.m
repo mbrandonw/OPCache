@@ -90,14 +90,16 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     return self;
 }
 
--(void) fetchImageForURL:(NSString*)url completion:(OPCacheImageCompletionBlock)completion {
-    [self fetchImageForURL:url cacheName:kOPCacheDefaultCacheName processing:nil completion:completion];
+-(id<OPCacheCancelable>) fetchImageForURL:(NSString*)url completion:(OPCacheImageCompletionBlock)completion {
+    return [self fetchImageForURL:url cacheName:kOPCacheDefaultCacheName processing:nil completion:completion];
 }
 
--(void) fetchImageForURL:(NSString *)url cacheName:(NSString *)cacheName processing:(OPCacheImageProcessingBlock)processing completion:(OPCacheImageCompletionBlock)completion {
+-(id<OPCacheCancelable>) fetchImageForURL:(NSString *)url cacheName:(NSString *)cacheName processing:(OPCacheImageProcessingBlock)processing completion:(OPCacheImageCompletionBlock)completion {
+    
+    cacheName = cacheName ?: kOPCacheDefaultCacheName;
     
     // early out on bad data
-    if (! url)    return ;
+    if (! url)    return nil;
     
     // check if image is already cached in memory or on disk
     id retVal = [self cachedImageForURL:url cacheName:cacheName];
@@ -105,22 +107,21 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     {
         if (completion)
             __opcache_dispatch_main_queue_asap(^{ completion(retVal, YES); });
-        return ;
+        return nil;
     }
-    
     
     // check if the original image is cached on disk so that all we have to do is process it
     UIImage *originalImage = [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
     if (originalImage)
     {
         [self processImage:originalImage with:processing url:url cacheName:cacheName completion:completion];
-        return ;
+        return nil;
     }
     
     // if there is already an operation running for this image, there's nothing to do. we can just wait till it's done
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
     if ([self.imageOperationsByCacheKey objectForKey:cacheKey])
-        return ;
+        return nil;
     
     // if we got this far then we gotta load something from the server. 
     
@@ -136,6 +137,8 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     
     [self.imageOperationQueue addOperation:operation];
     [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
+    
+    return (id<OPCacheCancelable>)operation;
 }
 
 -(UIImage*) cachedImageForURL:(NSString*)url {
