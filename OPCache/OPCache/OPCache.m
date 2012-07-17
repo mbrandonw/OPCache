@@ -240,6 +240,12 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
 }
 
+-(void) cancelFetchForHandle:(id<OPCacheCancelable>)handle {
+    
+    [handle cancel];
+    [self.imageOperationsByCacheKey removeObjectsForKeys:[self.imageOperationsByCacheKey allKeysForObject:handle]];
+}
+
 +(UIImage*(^)(UIImage *image)) resizeProcessingBlock:(CGSize)size {
     
     size.width *= [[UIScreen mainScreen] scale];

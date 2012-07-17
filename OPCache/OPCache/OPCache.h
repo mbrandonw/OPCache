@@ -53,6 +53,7 @@ typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
  */
 -(void) cancelFetchForURL:(NSString*)url;
 -(void) cancelFetchForURL:(NSString*)url cacheName:(NSString*)cacheName;
+-(void) cancelFetchForHandle:(id<OPCacheCancelable>)handle;
 
 /**
  An image processing block for resizing an image.
