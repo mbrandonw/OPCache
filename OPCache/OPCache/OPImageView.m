@@ -15,9 +15,6 @@
 
 @implementation OPImageView
 
-@synthesize animation = _animation;
-@synthesize cancelHandle = _cancelHandle;
-
 -(void) cancel {
     [[OPCache sharedCache] cancelFetchForHandle:self.cancelHandle];
     self.cancelHandle = nil;

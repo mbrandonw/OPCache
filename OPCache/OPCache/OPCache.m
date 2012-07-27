@@ -44,15 +44,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 
 @implementation OPCache
 
-@synthesize imagesPersistToDisk = _imagesPersistToDisk;
-@synthesize imagePersistencePath = _imagePersistencePath;
-@synthesize imagePersistenceTimeInterval = _imagePersistenceTimeInterval;
-@synthesize imagePersistenceMemoryThreshold = _imagePersistenceMemoryThreshold;
-@synthesize ioOperationQueue = _ioOperationQueue;
-@synthesize imageOperationsByCacheKey = _imageOperationsByCacheKey;
-@synthesize imageOperationQueue = _imageOperationQueue;
-@synthesize imageFileAttributes = _imageFileAttributes;
-
 +(id) sharedCache {
     static OPCache *__sharedCache = nil;
     static dispatch_once_t once;
