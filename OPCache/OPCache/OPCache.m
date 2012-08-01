@@ -11,6 +11,12 @@
 #define kOPCacheDefaultCacheName    @""
 #define kOPCacheOriginalKey         @"__original__"
 
+OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProcessingBlock block1, OPCacheImageProcessingBlock block2) {
+    return [(UIImage*)^(UIImage *image) {
+        return block2(block1(image));
+    } copy];
+}
+
 void __opcache_dispatch_main_queue_asap(dispatch_block_t block);
 void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     if (dispatch_get_current_queue() == dispatch_get_main_queue())
@@ -282,6 +288,29 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
             CFRelease(sourceImageRef);
         }
         UIGraphicsEndImageContext();
+        return newImage;
+        
+    } copy];
+}
+
++(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius {
+    
+    return [(UIImage*)^(UIImage *image){
+        
+        UIImage *newImage = nil;
+        CGRect rect = (CGRect){CGPointZero, image.size};
+        
+        UIGraphicsBeginImageContextWithOptions(image.size, NO, 1.0f);
+        {
+            CGImageRef sourceImageRef = CGImageCreateWithImageInRect(image.CGImage, rect);
+            newImage = [UIImage imageWithCGImage:sourceImageRef scale:1.0f orientation:image.imageOrientation];
+            [[UIBezierPath bezierPathWithRoundedRect:rect cornerRadius:radius] addClip];
+            [newImage drawInRect:rect];
+            newImage = UIGraphicsGetImageFromCurrentImageContext();
+            CFRelease(sourceImageRef);
+        }
+        UIGraphicsEndImageContext();
+        
         return newImage;
         
     } copy];

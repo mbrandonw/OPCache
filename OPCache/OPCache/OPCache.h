@@ -10,6 +10,7 @@
 
 typedef void (^OPCacheImageCompletionBlock)(UIImage *image, BOOL fromCache);
 typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
+OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProcessingBlock block1, OPCacheImageProcessingBlock block2);
 
 @protocol OPCacheCancelable <NSObject>
 -(void) cancel;
@@ -59,5 +60,6 @@ typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
  An image processing block for resizing an image.
  */
 +(OPCacheImageProcessingBlock) resizeProcessingBlock:(CGSize)size;
++(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius;
 
 @end
