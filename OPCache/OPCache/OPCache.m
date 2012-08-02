@@ -192,7 +192,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(NSString*) cachePathForImageURL:(NSString*)url cacheName:(NSString*)cacheName {
-    return [[self.imagePersistencePath stringByAppendingPathComponent:[self cacheKeyFromImageURL:url cacheName:cacheName]] stringByAppendingPathExtension:@"jpg"];
+    return [[self.imagePersistencePath stringByAppendingPathComponent:[self cacheKeyFromImageURL:url cacheName:cacheName]] stringByAppendingPathExtension:@"png"];
 }
 
 -(void) removeImageForURL:(NSString*)url {
@@ -405,7 +405,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 NSString *originalFilePath = [self cachePathForImageURL:url cacheName:kOPCacheOriginalKey];
                 if (! [[NSFileManager defaultManager] fileExistsAtPath:originalFilePath])
                 {
-                    NSData *imageData = UIImageJPEGRepresentation(originalImage, 0.9f);
+                    NSData *imageData = UIImagePNGRepresentation(originalImage);
                     NSDictionary *attributes = @{@"length": @([imageData length]),
                                                 @"date": [NSDate date]};
                     [self.imageFileAttributes setObject:attributes forKey:originalFilePath];
@@ -413,7 +413,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 }
                 
                 // cache the processed image
-                NSData *imageData = UIImageJPEGRepresentation(image, 0.9f);
+                NSData *imageData = UIImagePNGRepresentation(image);
                 NSString *filePath = [self cachePathForImageURL:url cacheName:cacheName];
                 NSDictionary *attributes = @{@"length": @([imageData length]),
                                             @"date": [NSDate date]};
