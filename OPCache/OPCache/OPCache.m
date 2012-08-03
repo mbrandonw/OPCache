@@ -443,8 +443,15 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 #pragma mark Overridden NSCache methods
 #pragma mark -
 
--(void) removeAllObjects {
-    [super removeAllObjects];
+-(id) objectForKey:(id)key {
+    id retVal = [super objectForKey:key];
+#ifdef DEBUG
+    if (! retVal)
+        NSLog(@"Cache miss for key: %@", key);
+    else
+        NSLog(@"Cache hit for key: %@", key);
+#endif
+    return retVal;
 }
 
 @end
