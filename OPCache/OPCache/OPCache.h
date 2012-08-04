@@ -60,6 +60,6 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
  An image processing block for resizing an image.
  */
 +(OPCacheImageProcessingBlock) resizeProcessingBlock:(CGSize)size;
-+(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius;
++(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius backgroundColor:(UIColor*)color;
 
 @end

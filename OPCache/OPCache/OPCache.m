@@ -65,7 +65,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     
     // some reasonable defaults
     
-    self.imagePersistencePath = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject] 
+    self.imagePersistencePath = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject]
                                  stringByAppendingPathComponent:@"OPCache"];
     self.imagesPersistToDisk = YES;
     self.imagePersistenceTimeInterval = 60.0 * 60.0 * 24.0 * 14.0; // 2 weeks of disk persistence
@@ -120,7 +120,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     if ([self.imageOperationsByCacheKey objectForKey:cacheKey])
         return nil;
     
-    // if we got this far then we gotta load something from the server. 
+    // if we got this far then we gotta load something from the server.
     
     // construct the image request operation, but don't use any caching mechanism. We handle that ourselves.
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10.0f];
@@ -192,7 +192,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(NSString*) cachePathForImageURL:(NSString*)url cacheName:(NSString*)cacheName {
-    return [[self.imagePersistencePath stringByAppendingPathComponent:[self cacheKeyFromImageURL:url cacheName:cacheName]] stringByAppendingPathExtension:@"png"];
+    return [[self.imagePersistencePath stringByAppendingPathComponent:[self cacheKeyFromImageURL:url cacheName:cacheName]] stringByAppendingPathExtension:@"jpg"];
 }
 
 -(void) removeImageForURL:(NSString*)url {
@@ -273,9 +273,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         }
         CGFloat scaleFactor = scaledHeight / sourceHeight;
         
-        CGRect sourceRect = CGRectMake(roundf(scaledWidth-targetWidth)/2.0f/scaleFactor, 
-                                       (scaledHeight-targetHeight)/2.0f/scaleFactor, 
-                                       targetWidth/scaleFactor, 
+        CGRect sourceRect = CGRectMake(roundf(scaledWidth-targetWidth)/2.0f/scaleFactor,
+                                       (scaledHeight-targetHeight)/2.0f/scaleFactor,
+                                       targetWidth/scaleFactor,
                                        targetHeight/scaleFactor);
         
         UIImage *newImage = nil;
@@ -285,7 +285,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
             newImage = [UIImage imageWithCGImage:sourceImageRef scale:1.0f orientation:image.imageOrientation];
             [newImage drawInRect:CGRectMake(0.0f, 0.0f, targetWidth, targetHeight)];
             newImage = UIGraphicsGetImageFromCurrentImageContext();
-            CFRelease(sourceImageRef);
+            
+            if (sourceImageRef)
+                CFRelease(sourceImageRef);
         }
         UIGraphicsEndImageContext();
         return newImage;
@@ -293,21 +295,22 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     } copy];
 }
 
-+(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius {
++(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius backgroundColor:(UIColor*)color {
     
     return [(UIImage*)^(UIImage *image){
         
         UIImage *newImage = nil;
         CGRect rect = (CGRect){CGPointZero, image.size};
         
-        UIGraphicsBeginImageContextWithOptions(image.size, NO, 1.0f);
+        UIGraphicsBeginImageContextWithOptions(image.size, YES, 1.0f);
         {
-            CGImageRef sourceImageRef = CGImageCreateWithImageInRect(image.CGImage, rect);
-            newImage = [UIImage imageWithCGImage:sourceImageRef scale:1.0f orientation:image.imageOrientation];
+            [color set];
+            CGContextFillRect(UIGraphicsGetCurrentContext(), rect);
+            
             [[UIBezierPath bezierPathWithRoundedRect:rect cornerRadius:radius] addClip];
-            [newImage drawInRect:rect];
+            [image drawInRect:rect];
+            
             newImage = UIGraphicsGetImageFromCurrentImageContext();
-            CFRelease(sourceImageRef);
         }
         UIGraphicsEndImageContext();
         
@@ -339,7 +342,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         
         // grab all the largest images that put the total cache size over our threshold
         NSArray *filePathsSortedBySize = [[self.imageFileAttributes allKeys] sortedArrayUsingComparator:^NSComparisonResult(id key1, id key2) {
-            return [[[self.imageFileAttributes objectForKey:key2] objectForKey:@"length"] 
+            return [[[self.imageFileAttributes objectForKey:key2] objectForKey:@"length"]
                     compare:[[self.imageFileAttributes objectForKey:key1] objectForKey:@"length"]];
         }];
         [filePathsSortedBySize enumerateObjectsUsingBlock:^(NSString *filePath, NSUInteger idx, BOOL *stop) {
@@ -405,18 +408,20 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 NSString *originalFilePath = [self cachePathForImageURL:url cacheName:kOPCacheOriginalKey];
                 if (! [[NSFileManager defaultManager] fileExistsAtPath:originalFilePath])
                 {
-                    NSData *imageData = UIImagePNGRepresentation(originalImage);
+                    NSData *imageData = UIImageJPEGRepresentation(originalImage, 0.9f);
                     NSDictionary *attributes = @{@"length": @([imageData length]),
-                                                @"date": [NSDate date]};
+                    @"date": [NSDate date]};
                     [self.imageFileAttributes setObject:attributes forKey:originalFilePath];
                     [imageData writeToFile:originalFilePath atomically:YES];
                 }
                 
                 // cache the processed image
-                NSData *imageData = UIImagePNGRepresentation(image);
+                NSData *imageData = UIImageJPEGRepresentation(image, 0.9f);
                 NSString *filePath = [self cachePathForImageURL:url cacheName:cacheName];
-                NSDictionary *attributes = @{@"length": @([imageData length]),
-                                            @"date": [NSDate date]};
+                NSDictionary *attributes = @{
+                    @"length": @([imageData length]),
+                    @"date": [NSDate date]
+                };
                 [self.imageFileAttributes setObject:attributes forKey:filePath];
                 [imageData writeToFile:filePath atomically:YES];
             }];
