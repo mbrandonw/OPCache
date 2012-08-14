@@ -296,6 +296,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 +(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius backgroundColor:(UIColor*)color {
+    radius *= [[UIScreen mainScreen] scale];
     
     return [(UIImage*)^(UIImage *image){
         
