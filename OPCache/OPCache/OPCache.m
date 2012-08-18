@@ -13,7 +13,16 @@
 
 OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProcessingBlock block1, OPCacheImageProcessingBlock block2) {
     return [(UIImage*)^(UIImage *image) {
-        return block2(block1(image));
+        
+        if (block1 && block2)
+            return block2(block1(image));
+        if (block1)
+            return block1(image);
+        if (block2)
+            return block2(image);
+        
+        return image;
+        
     } copy];
 }
 
