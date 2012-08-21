@@ -232,6 +232,18 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     [[NSFileManager defaultManager] removeItemAtPath:[self cachePathForImageURL:url cacheName:cacheName] error:NULL];
 }
 
+-(void) removeAllImages {
+    
+    [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
+        
+        NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:self.imagePersistencePath];
+        NSString *file = nil;
+        while (file = [enumerator nextObject])
+            [[NSFileManager defaultManager] removeItemAtPath:[self.imagePersistencePath stringByAppendingPathComponent:file] error:NULL];
+        
+    }]];
+}
+
 -(void) cancelFetchForURL:(NSString*)url {
     [self cancelFetchForURL:url cacheName:kOPCacheDefaultCacheName];
 }

@@ -48,6 +48,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 -(void) removeImageForURL:(NSString*)url;
 -(void) removeAllImagesForURL:(NSString*)url;
 -(void) removeImageForURL:(NSString*)url cacheName:(NSString*)cacheName;
+-(void) removeAllImages;
 
 /**
  Cancel the request to fetch image from a URL.
