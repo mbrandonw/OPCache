@@ -472,7 +472,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 
 -(id) objectForKey:(id)key {
     id retVal = [super objectForKey:key];
-#ifdef DEBUG
+#if TARGET_IPHONE_SIMULATOR
     if (! retVal)
         NSLog(@"Cache miss for key: %@", key);
     else
