@@ -265,9 +265,13 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 +(UIImage*(^)(UIImage *image)) resizeProcessingBlock:(CGSize)size {
+    return [[self class] resizeProcessingBlock:size detectRetina:YES];
+}
+
++(OPCacheImageProcessingBlock) resizeProcessingBlock:(CGSize)size detectRetina:(BOOL)detectRetina {
     
-    size.width *= [[UIScreen mainScreen] scale];
-    size.height *= [[UIScreen mainScreen] scale];
+    size.width *= detectRetina ? [[UIScreen mainScreen] scale] : 1.0f;;
+    size.height *= detectRetina ? [[UIScreen mainScreen] scale] : 1.0f;
     
     return [(UIImage*)^(UIImage *image){
         
