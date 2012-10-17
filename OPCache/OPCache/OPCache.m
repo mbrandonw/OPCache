@@ -133,7 +133,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     
     // construct the image request operation, but don't use any caching mechanism. We handle that ourselves.
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10.0f];
-    AFImageRequestOperation *operation = [AFImageRequestOperation imageRequestOperationWithRequest:request imageProcessingBlock:nil cacheName:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
+    AFImageRequestOperation *operation = [AFImageRequestOperation imageRequestOperationWithRequest:request imageProcessingBlock:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
         if (image)
             [self processImage:image with:processing url:url cacheName:cacheName completion:completion];
     } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error) {
