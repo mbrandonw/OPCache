@@ -23,6 +23,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 @property (nonatomic, strong) NSString *imagePersistencePath;
 @property (nonatomic, assign) NSTimeInterval imagePersistenceTimeInterval;
 @property (nonatomic, assign) NSUInteger imagePersistenceMemoryThreshold;
+@property (nonatomic, assign) BOOL cachePNGs;
 
 +(id) sharedCache;
 
@@ -63,5 +64,6 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 +(OPCacheImageProcessingBlock) resizeProcessingBlock:(CGSize)size;
 +(OPCacheImageProcessingBlock) resizeProcessingBlock:(CGSize)size detectRetina:(BOOL)detectRetina;
 +(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius backgroundColor:(UIColor*)color;
++(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius corners:(UIRectCorner)corners backgroundColor:(UIColor*)color;
 
 @end

@@ -78,7 +78,8 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                                  stringByAppendingPathComponent:@"OPCache"];
     self.imagesPersistToDisk = YES;
     self.imagePersistenceTimeInterval = 60.0 * 60.0 * 24.0 * 14.0; // 2 weeks of disk persistence
-    self.imagePersistenceMemoryThreshold = ((NSUInteger)[[UIScreen mainScreen] scale] * 20) * 1024 * 1024;
+    self.imagePersistenceMemoryThreshold = ((NSUInteger)[[UIScreen mainScreen] scale] * 50) * 1024 * 1024;
+    self.cachePNGs = YES;
     
     self.ioOperationQueue = [NSOperationQueue new];
     self.ioOperationQueue.maxConcurrentOperationCount = 1;
@@ -201,7 +202,8 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 -(NSString*) cachePathForImageURL:(NSString*)url cacheName:(NSString*)cacheName {
-    return [[self.imagePersistencePath stringByAppendingPathComponent:[self cacheKeyFromImageURL:url cacheName:cacheName]] stringByAppendingPathExtension:@"jpg"];
+    return [[self.imagePersistencePath stringByAppendingPathComponent:[self cacheKeyFromImageURL:url cacheName:cacheName]]
+            stringByAppendingPathExtension:self.cachePNGs ? @"png" : @"jpg"];
 }
 
 -(void) removeImageForURL:(NSString*)url {
@@ -321,6 +323,10 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 +(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius backgroundColor:(UIColor*)color {
+    return [[self class] roundedCornerProcessingBlock:radius corners:UIRectCornerAllCorners backgroundColor:color];
+}
+
++(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius corners:(UIRectCorner)corners backgroundColor:(UIColor *)color {
     radius *= [[UIScreen mainScreen] scale];
     
     return [(UIImage*)^(UIImage *image){
@@ -328,12 +334,16 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         UIImage *newImage = nil;
         CGRect rect = (CGRect){CGPointZero, image.size};
         
-        UIGraphicsBeginImageContextWithOptions(image.size, YES, 1.0f);
+        UIGraphicsBeginImageContextWithOptions(image.size, (color != nil), 1.0f);
         {
-            [color set];
-            CGContextFillRect(UIGraphicsGetCurrentContext(), rect);
+            if (color) {
+                [color set];
+                CGContextFillRect(UIGraphicsGetCurrentContext(), rect);
+            } else {
+                CGContextClearRect(UIGraphicsGetCurrentContext(), rect);
+            }
             
-            [[UIBezierPath bezierPathWithRoundedRect:rect cornerRadius:radius] addClip];
+            [[UIBezierPath bezierPathWithRoundedRect:rect byRoundingCorners:corners cornerRadii:CGSizeMake(radius, radius)] addClip];
             [image drawInRect:rect];
             
             newImage = UIGraphicsGetImageFromCurrentImageContext();
@@ -434,7 +444,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 NSString *originalFilePath = [self cachePathForImageURL:url cacheName:kOPCacheOriginalKey];
                 if (! [[NSFileManager defaultManager] fileExistsAtPath:originalFilePath])
                 {
-                    NSData *imageData = UIImageJPEGRepresentation(originalImage, 0.9f);
+                    NSData *imageData = self.cachePNGs ? UIImagePNGRepresentation(originalImage) : UIImageJPEGRepresentation(originalImage, 0.9f);
                     NSDictionary *attributes = @{@"length": @([imageData length]),
                     @"date": [NSDate date]};
                     [self.imageFileAttributes setObject:attributes forKey:originalFilePath];
@@ -442,7 +452,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
                 }
                 
                 // cache the processed image
-                NSData *imageData = UIImageJPEGRepresentation(image, 0.9f);
+                NSData *imageData = self.cachePNGs ? UIImagePNGRepresentation(image) : UIImageJPEGRepresentation(image, 0.9f);
                 NSString *filePath = [self cachePathForImageURL:url cacheName:cacheName];
                 NSDictionary *attributes = @{
                     @"length": @([imageData length]),
