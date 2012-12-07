@@ -77,7 +77,6 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     self.imagePersistencePath = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject]
                                  stringByAppendingPathComponent:@"OPCache"];
     self.imagesPersistToDisk = YES;
-    self.imagePersistenceTimeInterval = 60.0 * 60.0 * 24.0 * 14.0; // 2 weeks of disk persistence
     self.imagePersistenceMemoryThreshold = ((NSUInteger)[[UIScreen mainScreen] scale] * 50) * 1024 * 1024;
     self.cachePNGs = YES;
     
@@ -366,23 +365,21 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
         
         NSMutableSet *removableFilePaths = [NSMutableSet new];
-        __block NSUInteger totalSize = 0;
+        __block long long totalSize = 0;
         
-        // grab all of the image files that have expired dates
-        NSDate *cutoff = [NSDate dateWithTimeIntervalSinceNow:-self.imagePersistenceTimeInterval];
+        // compute total size of cache
         [self.imageFileAttributes enumerateKeysAndObjectsUsingBlock:^(NSString *filePath, NSDictionary *attributes, BOOL *stop) {
-            if ([(NSDate*)[attributes objectForKey:@"date"] compare:cutoff] == NSOrderedAscending)
-                [removableFilePaths addObject:filePath];
             totalSize += [[attributes objectForKey:@"length"] unsignedIntegerValue];
         }];
         
         // grab all the largest images that put the total cache size over our threshold
         NSArray *filePathsSortedBySize = [[self.imageFileAttributes allKeys] sortedArrayUsingComparator:^NSComparisonResult(id key1, id key2) {
-            return [[[self.imageFileAttributes objectForKey:key2] objectForKey:@"length"]
-                    compare:[[self.imageFileAttributes objectForKey:key1] objectForKey:@"length"]];
+            NSNumber *length1 = [[self.imageFileAttributes objectForKey:key2] objectForKey:@"length"];
+            NSNumber *length2 = [[self.imageFileAttributes objectForKey:key1] objectForKey:@"length"];
+            return [length1 compare:length2];
         }];
         [filePathsSortedBySize enumerateObjectsUsingBlock:^(NSString *filePath, NSUInteger idx, BOOL *stop) {
-            totalSize -= [[[self.imageFileAttributes objectForKey:filePath] objectForKey:@"length"] unsignedIntegerValue];
+            totalSize -= [[[self.imageFileAttributes objectForKey:filePath] objectForKey:@"length"] longLongValue];
             if (totalSize > self.imagePersistenceMemoryThreshold)
                 [removableFilePaths addObject:filePath];
             if (totalSize < self.imagePersistenceMemoryThreshold)

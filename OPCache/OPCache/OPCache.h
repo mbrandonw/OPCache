@@ -21,7 +21,6 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 @property (nonatomic, strong, readonly) NSOperationQueue *ioOperationQueue;
 @property (nonatomic, assign) BOOL imagesPersistToDisk;
 @property (nonatomic, strong) NSString *imagePersistencePath;
-@property (nonatomic, assign) NSTimeInterval imagePersistenceTimeInterval;
 @property (nonatomic, assign) NSUInteger imagePersistenceMemoryThreshold;
 @property (nonatomic, assign) BOOL cachePNGs;
 
