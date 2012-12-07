@@ -11,6 +11,7 @@
 
 @interface OPImageView (/**/)
 @property (nonatomic, weak) id<OPCacheCancelable> cancelHandle;
+@property (nonatomic, strong, readwrite) NSString *imageURL;
 @end
 
 @implementation OPImageView
@@ -38,6 +39,7 @@
           processing:(UIImage*(^)(UIImage *image))processing
           completion:(OPCacheImageCompletionBlock)completion {
     
+    self.imageURL = url;
     [self cancel];
     self.image = placeholder;
     

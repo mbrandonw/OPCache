@@ -17,6 +17,7 @@ typedef enum {
 @interface OPImageView : UIImageView
 
 @property (nonatomic, assign) OPImageViewAnimation animation;
+@property (nonatomic, strong, readonly) NSString *imageURL;
 
 -(void) cancel;
 
