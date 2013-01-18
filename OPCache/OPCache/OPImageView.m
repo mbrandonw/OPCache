@@ -12,6 +12,7 @@
 @interface OPImageView (/**/)
 @property (nonatomic, weak) id<OPCacheCancelable> cancelHandle;
 @property (nonatomic, strong, readwrite) NSString *imageURL;
+@property (nonatomic, strong) UIImageView *placeholderImageView;
 @end
 
 @implementation OPImageView
@@ -39,9 +40,15 @@
           processing:(UIImage*(^)(UIImage *image))processing
           completion:(OPCacheImageCompletionBlock)completion {
     
+    self.image = nil;
     self.imageURL = url;
     [self cancel];
-    self.image = placeholder;
+    if (placeholder) {
+        self.placeholderImageView.image = placeholder;
+        self.placeholderImageView.alpha = 1.0f;
+    } else {
+        _placeholderImageView.image = nil;
+    }
     
     self.cancelHandle = [[OPCache sharedCache] fetchImageForURL:url cacheName:cacheName processing:processing completion:^(UIImage *image, BOOL fromCache) {
         
@@ -50,19 +57,40 @@
         [self.superview setNeedsLayout];
         self.cancelHandle = nil;
         
-        if (completion)
+        if (completion) {
             completion(image, fromCache);
+        }
         
-        self.alpha = 0.0f;
+        if (placeholder) {
+            _placeholderImageView.alpha = 1.0f;
+        } else {
+            self.alpha = 0.0f;
+        }
         [UIView animateWithDuration:0.3f*(!fromCache)*(self.animation == OPImageViewAnimationFade) animations:^{
-            self.alpha = 1.0f;
+            if (placeholder) {
+                _placeholderImageView.alpha = 0.0f;
+            } else {
+                self.alpha = 1.0f;
+            }
         }];
     }];
 }
 
 -(void) didMoveToWindow {
-    if (! self.window)
+    if (! self.window) {
         [self cancel];
+    }
+}
+
+-(UIImageView*) placeholderImageView {
+    if (! _placeholderImageView)
+    {
+        self.placeholderImageView = [UIImageView new];
+        self.placeholderImageView.frame = self.bounds;
+        self.placeholderImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
+        [self addSubview:self.placeholderImageView];
+    }
+    return _placeholderImageView;
 }
 
 @end
