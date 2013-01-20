@@ -8,11 +8,13 @@
 
 #import "OPImageView.h"
 #import "OPCache.h"
+#import <sys/sysctl.h>
 
 @interface OPImageView (/**/)
 @property (nonatomic, weak) id<OPCacheCancelable> cancelHandle;
 @property (nonatomic, strong, readwrite) NSString *imageURL;
 @property (nonatomic, strong) UIImageView *placeholderImageView;
+-(BOOL) deviceIsFast;
 @end
 
 @implementation OPImageView
@@ -66,7 +68,8 @@
         } else {
             self.alpha = 0.0f;
         }
-        [UIView animateWithDuration:0.3f*(!fromCache)*(self.animation == OPImageViewAnimationFade) animations:^{
+        BOOL animate = self.animation == OPImageViewAnimationFade || (self.animation == OPImageViewAnimationAuto && [self deviceIsFast]);
+        [UIView animateWithDuration:0.3f*(!fromCache)*animate animations:^{
             if (placeholder) {
                 _placeholderImageView.alpha = 0.0f;
             } else {
@@ -91,6 +94,34 @@
         [self addSubview:self.placeholderImageView];
     }
     return _placeholderImageView;
+}
+
+-(BOOL) deviceIsFast {
+    static NSInteger fastFlag = -1;
+    if (fastFlag >= 0) {
+        return fastFlag == 1;
+    }
+    
+#if TARGET_IPHONE_SIMULATOR
+    fastFlag = 1;
+    return YES;
+#endif
+    
+    size_t size;
+    sysctlbyname("hw.machine", NULL, &size, NULL, 0);
+    char *answer = malloc(size);
+    sysctlbyname("hw.machine", answer, &size, NULL, 0);
+    NSString *platform = [NSString stringWithCString:answer encoding: NSUTF8StringEncoding];
+    free(answer);
+    
+    if ([platform hasPrefix:@"iPhone"]) {
+        fastFlag = [platform compare:@"iPhone3"] == NSOrderedDescending ? 1 : 0;
+    } else if ([platform hasPrefix:@"iPod"]) {
+        fastFlag = [platform compare:@"iPod4"] == NSOrderedDescending ? 1 : 0;
+    } else if ([platform hasPrefix:@"iPad"]) {
+        fastFlag = [platform compare:@"iPad2"] == NSOrderedDescending ? 1 : 0;
+    }
+    return fastFlag == 1;
 }
 
 @end

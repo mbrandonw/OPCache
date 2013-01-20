@@ -12,6 +12,7 @@
 typedef enum {
     OPImageViewAnimationNone,
     OPImageViewAnimationFade,
+    OPImageViewAnimationAuto,
 } OPImageViewAnimation;
 
 @interface OPImageView : UIImageView
