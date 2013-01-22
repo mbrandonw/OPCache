@@ -115,11 +115,11 @@
     free(answer);
     
     if ([platform hasPrefix:@"iPhone"]) {
-        fastFlag = [platform compare:@"iPhone3"] == NSOrderedDescending ? 1 : 0;
+        fastFlag = [platform compare:@"iPhone4"] == NSOrderedDescending ? 1 : 0;
     } else if ([platform hasPrefix:@"iPod"]) {
-        fastFlag = [platform compare:@"iPod4"] == NSOrderedDescending ? 1 : 0;
+        fastFlag = [platform compare:@"iPod5"] == NSOrderedDescending ? 1 : 0;
     } else if ([platform hasPrefix:@"iPad"]) {
-        fastFlag = [platform compare:@"iPad2"] == NSOrderedDescending ? 1 : 0;
+        fastFlag = [platform compare:@"iPad3"] == NSOrderedDescending ? 1 : 0;
     }
     return fastFlag == 1;
 }
