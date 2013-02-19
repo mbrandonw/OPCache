@@ -14,12 +14,13 @@
 OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProcessingBlock block1, OPCacheImageProcessingBlock block2) {
     return [(UIImage*)^(UIImage *image) {
         
-        if (block1 && block2)
+        if (block1 && block2) {
             return block2(block1(image));
-        if (block1)
+        } else if (block1) {
             return block1(image);
-        if (block2)
+        } else if (block2) {
             return block2(image);
+        }
         
         return image;
         
@@ -28,10 +29,11 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 
 void __opcache_dispatch_main_queue_asap(dispatch_block_t block);
 void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
-    if (dispatch_get_current_queue() == dispatch_get_main_queue())
+    if (dispatch_get_current_queue() == dispatch_get_main_queue()) {
         block();
-    else
+    } else {
         dispatch_async(dispatch_get_main_queue(), block);
+    }
 }
 
 @interface OPCache (/**/)
@@ -112,8 +114,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     if (retVal)
     {
         [self.filesToTouch addObject:[self cachePathForImageURL:url cacheName:cacheName]];
-        if (completion)
+        if (completion) {
             __opcache_dispatch_main_queue_asap(^{ completion(retVal, YES); });
+        }
         return nil;
     }
     
@@ -127,16 +130,18 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     
     // if there is already an operation running for this image, there's nothing to do. we can just wait till it's done
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
-    if ([self.imageOperationsByCacheKey objectForKey:cacheKey])
+    if ([self.imageOperationsByCacheKey objectForKey:cacheKey]) {
         return nil;
+    }
     
     // if we got this far then we gotta load something from the server.
     
     // construct the image request operation, but don't use any caching mechanism. We handle that ourselves.
     NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10.0f];
     AFImageRequestOperation *operation = [AFImageRequestOperation imageRequestOperationWithRequest:request imageProcessingBlock:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
-        if (image)
+        if (image) {
             [self processImage:image with:processing url:url cacheName:cacheName completion:completion];
+        }
     } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error) {
         [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
     }];
@@ -225,8 +230,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         if ([file hasSuffix:[NSString stringWithFormat:@"%u", [url hash]]])
         {
             NSString *cacheName = [[file componentsSeparatedByString:@"-"] lastObject];
-            if (cacheName)
+            if (cacheName) {
                 [self removeImageForURL:url cacheName:cacheName];
+            }
         }
     }
 }
@@ -243,8 +249,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         
         NSDirectoryEnumerator *enumerator = [[NSFileManager defaultManager] enumeratorAtPath:self.imagePersistencePath];
         NSString *file = nil;
-        while (file = [enumerator nextObject])
+        while (file = [enumerator nextObject]) {
             [[NSFileManager defaultManager] removeItemAtPath:[self.imagePersistencePath stringByAppendingPathComponent:file] error:NULL];
+        }
         
     }]];
 }
@@ -316,8 +323,9 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
             [newImage drawInRect:CGRectMake(0.0f, 0.0f, targetWidth, targetHeight)];
             newImage = UIGraphicsGetImageFromCurrentImageContext();
             
-            if (sourceImageRef)
+            if (sourceImageRef) {
                 CFRelease(sourceImageRef);
+            }
         }
         UIGraphicsEndImageContext();
         return newImage;
@@ -429,10 +437,12 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         
         // process the image if needed
         UIImage *image = originalImage;
-        if (processing)
+        if (processing) {
             image = processing(image);
-        if (! image)
+        }
+        if (! image) {
             return ;
+        }
         
         // stick the processed image into memory cache
         NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
