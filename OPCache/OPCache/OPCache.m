@@ -37,10 +37,10 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
 }
 
 @interface OPCache (/**/)
-@property (nonatomic, strong, readwrite) NSOperationQueue *ioOperationQueue;
-@property (nonatomic, strong) NSMutableDictionary *imageOperationsByCacheKey;
-@property (nonatomic, strong) NSOperationQueue *imageOperationQueue;
-@property (nonatomic, strong) NSMutableOrderedSet *filesToTouch;
+@property (atomic, strong, readwrite) NSOperationQueue *ioOperationQueue;
+@property (atomic, strong) NSMutableDictionary *imageOperationsByCacheKey;
+@property (atomic, strong) NSOperationQueue *imageOperationQueue;
+@property (atomic, strong) NSMutableOrderedSet *filesToTouch;
 
 -(UIImage*) diskImageFromURL:(NSString*)url;
 -(UIImage*) diskImageFromURL:(NSString*)url cacheName:(NSString*)cacheName;

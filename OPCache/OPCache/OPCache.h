@@ -18,7 +18,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 
 @interface OPCache : NSCache
 
-@property (nonatomic, strong, readonly) NSOperationQueue *ioOperationQueue;
+@property (atomic, strong, readonly) NSOperationQueue *ioOperationQueue;
 @property (nonatomic, assign) BOOL imagesPersistToDisk;
 @property (nonatomic, strong) NSString *imagePersistencePath;
 @property (nonatomic, assign) NSUInteger imagePersistenceMemoryThreshold;
