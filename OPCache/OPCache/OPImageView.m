@@ -19,6 +19,16 @@
 
 @implementation OPImageView
 
+-(id) initWithFrame:(CGRect)frame {
+  if (! (self = [super initWithFrame:frame])) {
+    return nil;
+  }
+
+  self.animation = OPImageViewAnimationAuto;
+
+  return self;
+}
+
 -(void) cancel {
     [[OPCache sharedCache] cancelFetchForHandle:self.cancelHandle];
     self.cancelHandle = nil;
