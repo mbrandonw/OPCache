@@ -27,15 +27,6 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
     } copy];
 }
 
-void __opcache_dispatch_main_queue_asap(dispatch_block_t block);
-void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
-    if (dispatch_get_current_queue() == dispatch_get_main_queue()) {
-        block();
-    } else {
-        dispatch_async(dispatch_get_main_queue(), block);
-    }
-}
-
 @interface OPCache (/**/)
 @property (atomic, strong, readwrite) NSOperationQueue *ioOperationQueue;
 @property (atomic, strong) NSMutableDictionary *imageOperationsByCacheKey;
@@ -123,7 +114,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
     {
         [self.filesToTouch addObject:[self cachePathForImageURL:url cacheName:cacheName]];
         if (completion) {
-            __opcache_dispatch_main_queue_asap(^{ completion(retVal, YES); });
+            completion(retVal, YES);
         }
         return nil;
     }
@@ -457,8 +448,7 @@ void __opcache_dispatch_main_queue_asap(dispatch_block_t block) {
         [self setObject:image forKey:cacheKey];
         
         // call all the completion blocks on the main queue
-        __opcache_dispatch_main_queue_asap(^{
-            
+        dispatch_async(dispatch_get_main_queue(), ^{
             completion(image, NO);
             [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
         });
