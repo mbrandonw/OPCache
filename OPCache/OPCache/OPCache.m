@@ -8,8 +8,6 @@
 
 #import "OPCache.h"
 
-static NSUInteger __OPCacheFetchCount = 0;
-static NSUInteger __OPCacheMissCount = 0;
 #define kOPCacheDefaultCacheName    @""
 #define kOPCacheOriginalKey         @"__original__"
 
@@ -484,6 +482,9 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 -(id) objectForKey:(id)key {
   id retVal = [super objectForKey:key];
 #if TARGET_IPHONE_SIMULATOR
+  static NSUInteger __OPCacheFetchCount = 0;
+  static NSUInteger __OPCacheMissCount = 0;
+  
   __OPCacheFetchCount++;
   if (! retVal) {
     __OPCacheMissCount++;
