@@ -8,6 +8,8 @@
 
 #import "OPCache.h"
 
+static NSUInteger __OPCacheFetchCount = 0;
+static NSUInteger __OPCacheMissCount = 0;
 #define kOPCacheDefaultCacheName    @""
 #define kOPCacheOriginalKey         @"__original__"
 
@@ -480,14 +482,21 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 #pragma mark -
 
 -(id) objectForKey:(id)key {
-    id retVal = [super objectForKey:key];
+  id retVal = [super objectForKey:key];
 #if TARGET_IPHONE_SIMULATOR
-    if (! retVal)
-        NSLog(@"Cache miss for key: %@", key);
-    else
-        NSLog(@"Cache hit for key: %@", key);
+  __OPCacheFetchCount++;
+  if (! retVal) {
+    __OPCacheMissCount++;
+    NSLog(@"Cache miss for key: %@", key);
+  } else {
+    NSLog(@"Cache hit for key: %@", key);
+  }
+  NSLog(@"Cache miss ratio: %i of %i, %.0f%%",
+        __OPCacheMissCount,
+        __OPCacheFetchCount,
+        ((float)__OPCacheMissCount)/((float)__OPCacheFetchCount)*100.0f);
 #endif
-    return retVal;
+  return retVal;
 }
 
 @end
