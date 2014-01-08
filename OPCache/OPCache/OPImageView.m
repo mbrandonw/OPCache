@@ -66,7 +66,7 @@
 
     self.image = image;
     [self setNeedsLayout];
-    [self.superview setNeedsLayout];
+    [self.superview layoutIfNeeded];
     self.cancelHandle = nil;
 
     if (completion) {
