@@ -482,20 +482,11 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 -(id) objectForKey:(id)key {
   id retVal = [super objectForKey:key];
 #if TARGET_IPHONE_SIMULATOR
-  static NSUInteger __OPCacheFetchCount = 0;
-  static NSUInteger __OPCacheMissCount = 0;
-  
-  __OPCacheFetchCount++;
   if (! retVal) {
-    __OPCacheMissCount++;
     NSLog(@"Cache miss for key: %@", key);
   } else {
     NSLog(@"Cache hit for key: %@", key);
   }
-  NSLog(@"Cache miss ratio: %i of %i, %.0f%%",
-        __OPCacheMissCount,
-        __OPCacheFetchCount,
-        ((float)__OPCacheMissCount)/((float)__OPCacheFetchCount)*100.0f);
 #endif
   return retVal;
 }

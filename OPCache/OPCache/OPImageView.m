@@ -65,8 +65,6 @@
   self.cancelHandle = [[OPCache sharedCache] fetchImageForURL:url cacheName:cacheName processing:processing completion:^(UIImage *image, BOOL fromCache) {
 
     self.image = image;
-    [self setNeedsLayout];
-    [self.superview layoutIfNeeded];
     self.cancelHandle = nil;
 
     if (completion) {
