@@ -64,5 +64,6 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 +(OPCacheImageProcessingBlock) resizeProcessingBlock:(CGSize)size detectRetina:(BOOL)detectRetina;
 +(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius backgroundColor:(UIColor*)color;
 +(OPCacheImageProcessingBlock) roundedCornerProcessingBlock:(CGFloat)radius corners:(UIRectCorner)corners backgroundColor:(UIColor*)color;
++(OPCacheImageProcessingBlock) circleProcessingBlockWithBackgroundColor:(UIColor*)color;
 
 @end

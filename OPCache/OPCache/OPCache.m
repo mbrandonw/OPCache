@@ -363,12 +363,41 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
     } copy];
 }
 
++(OPCacheImageProcessingBlock) circleProcessingBlockWithBackgroundColor:(UIColor*)color {
+
+  return [(UIImage*)^(UIImage *image){
+
+    UIImage *newImage = nil;
+    CGRect rect = (CGRect){CGPointZero, image.size};
+
+    UIGraphicsBeginImageContextWithOptions(image.size, (color != nil), 1.0f);
+    {
+      if (color) {
+        [color set];
+        CGContextFillRect(UIGraphicsGetCurrentContext(), rect);
+      } else {
+        CGContextClearRect(UIGraphicsGetCurrentContext(), rect);
+      }
+
+      CGFloat radius = image.size.width / 2.0f;
+      [[UIBezierPath bezierPathWithRoundedRect:rect byRoundingCorners:UIRectCornerAllCorners cornerRadii:CGSizeMake(radius, radius)] addClip];
+      [image drawInRect:rect];
+
+      newImage = UIGraphicsGetImageFromCurrentImageContext();
+    }
+    UIGraphicsEndImageContext();
+
+    return newImage;
+
+  } copy];
+}
+
 #pragma mark -
 #pragma mark Private methods
 #pragma mark -
 
 -(void) cleanUpPersistedImages {
-    
+
     // clean up the old image files in the IO queue, and let the OS know this may take some time.
     UIBackgroundTaskIdentifier taskIdentifier = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:nil];
     [self.ioOperationQueue addOperation:[NSBlockOperation blockOperationWithBlock:^{
