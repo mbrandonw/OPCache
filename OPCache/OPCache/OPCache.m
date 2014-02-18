@@ -47,6 +47,8 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 
 -(void) cleanUpPersistedImages;
 -(void) processImage:(UIImage*)originalImage with:(OPCacheImageProcessingBlock)processing url:(NSString*)url cacheName:(NSString*)cacheName completion:(OPCacheImageCompletionBlock)completion;
+
+-(UIImage*) decompressedImageWithContentsOfFile:(NSString*)path;
 @end
 
 @implementation OPCache
@@ -101,37 +103,13 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 
 -(id<OPCacheCancelable>) fetchImageForURL:(NSString *)url cacheName:(NSString *)cacheName processing:(OPCacheImageProcessingBlock)processing completion:(OPCacheImageCompletionBlock)completion {
 
-  cacheName = cacheName ?: kOPCacheDefaultCacheName;
-
   // early out on bad data
-  if (! url)    return nil;
-
-  // check if image is already cached in memory or on disk
-  id retVal = [self cachedImageForURL:url cacheName:cacheName];
-  if (retVal)
-  {
-    [self.filesToTouch addObject:[self cachePathForImageURL:url cacheName:cacheName]];
-    if (completion) {
-      completion(retVal, YES);
-    }
+  if (! url) {
     return nil;
   }
 
-  // check if the original image is cached on disk so that all we have to do is process it
-  UIImage *originalImage = [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
-  if (originalImage)
-  {
-    [self processImage:originalImage with:processing url:url cacheName:cacheName completion:completion];
-    return nil;
-  }
-
-  // if there is already an operation running for this image, there's nothing to do. we can just wait till it's done
+  cacheName = cacheName ?: kOPCacheDefaultCacheName;
   NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
-  if ([self.imageOperationsByCacheKey objectForKey:cacheKey]) {
-    return nil;
-  }
-
-  // if we got this far then we gotta load something from the server.
 
   // construct the image request operation, but don't use any caching mechanism. We handle that ourselves.
   NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10.0f];
@@ -144,8 +122,35 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
   }];
   operation.imageScale = 1.0f;
 
-  [self.imageOperationQueue addOperation:operation];
-  [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+
+    // check if image is already cached in memory or on disk
+    id retVal = [self cachedImageForURL:url cacheName:cacheName];
+    if (retVal) {
+      [self.filesToTouch addObject:[self cachePathForImageURL:url cacheName:cacheName]];
+      if (completion) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+          completion(retVal, YES);
+        });
+      }
+      return;
+    }
+
+    // check if the original image is cached on disk so that all we have to do is process it
+    UIImage *originalImage = [[UIImage alloc] initWithContentsOfFile:[self cachePathForImageURL:url cacheName:kOPCacheOriginalKey]];
+    if (originalImage) {
+      [self processImage:originalImage with:processing url:url cacheName:cacheName completion:completion];
+      return;
+    }
+
+    // if there is already an operation running for this image, there's nothing to do. we can just wait till it's done
+    if ([self.imageOperationsByCacheKey objectForKey:cacheKey]) {
+      return;
+    }
+
+    [self.imageOperationQueue addOperation:operation];
+    [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
+  });
 
   return (id<OPCacheCancelable>)operation;
 }
@@ -191,7 +196,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 
   NSString *path = [self cachePathForImageURL:url cacheName:cacheName];
   [self.filesToTouch addObject:path];
-  return [[UIImage alloc] initWithContentsOfFile:path];
+  return [self decompressedImageWithContentsOfFile:path];
 }
 
 -(NSString*) cacheKeyFromImageURL:(NSString*)url {
@@ -502,6 +507,32 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
       [self.ioOperationQueue addOperation:ioOperation];
     }
   });
+}
+
+-(UIImage*) decompressedImageWithContentsOfFile:(NSString*)path {
+
+  UIImage *image = [[UIImage alloc] initWithContentsOfFile:path];
+  if (! image) {
+    return nil;
+  }
+
+  CGImageRef imageRef = image.CGImage;
+  CGRect rect = CGRectMake(0.f, 0.f, CGImageGetWidth(imageRef), CGImageGetHeight(imageRef));
+  CGContextRef bitmapContext = CGBitmapContextCreate(NULL,
+                                                     rect.size.width,
+                                                     rect.size.height,
+                                                     CGImageGetBitsPerComponent(imageRef),
+                                                     CGImageGetBytesPerRow(imageRef),
+                                                     CGImageGetColorSpace(imageRef),
+                                                     CGImageGetBitmapInfo(imageRef)
+                                                     );
+  CGContextDrawImage(bitmapContext, rect, imageRef);
+  CGImageRef decompressedImageRef = CGBitmapContextCreateImage(bitmapContext);
+  UIImage *decompressedImage = [UIImage imageWithCGImage:decompressedImageRef];
+  CGImageRelease(decompressedImageRef);
+  CGContextRelease(bitmapContext);
+
+  return decompressedImage;
 }
 
 #pragma mark -
