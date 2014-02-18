@@ -31,8 +31,8 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
  stuffing it into a memory cache and disk cache.
  */
 -(id<OPCacheCancelable>) fetchImageForURL:(NSString*)url completion:(OPCacheImageCompletionBlock)completion;
--(id<OPCacheCancelable>) fetchImageForURL:(NSString*)url 
-                                cacheName:(NSString*)cacheName 
+-(id<OPCacheCancelable>) fetchImageForURL:(NSString*)url
+                                cacheName:(NSString*)cacheName
                                processing:(OPCacheImageProcessingBlock)processing
                                completion:(OPCacheImageCompletionBlock)completion;
 
