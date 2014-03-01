@@ -127,7 +127,7 @@
   } else if ([platform hasPrefix:@"iPod"]) {
     fastFlag = [platform compare:@"iPod5"] == NSOrderedDescending ? 1 : 0;
   } else if ([platform hasPrefix:@"iPad"]) {
-    fastFlag = [platform compare:@"iPad3"] == NSOrderedDescending ? 1 : 0;
+    fastFlag = [platform compare:@"iPad2"] == NSOrderedDescending ? 1 : 0;
   }
   return fastFlag == 1;
 }
