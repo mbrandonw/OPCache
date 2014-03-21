@@ -481,7 +481,9 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 
     // call all the completion blocks on the main queue
     dispatch_async(dispatch_get_main_queue(), ^{
-      completion(image, NO);
+      if (completion) {
+        completion(image, NO);
+      }
       [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
     });
 
