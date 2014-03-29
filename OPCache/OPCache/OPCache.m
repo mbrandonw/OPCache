@@ -72,7 +72,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
                                stringByAppendingPathComponent:@"OPCache"];
   self.imagesPersistToDisk = YES;
   self.imagePersistenceMemoryThreshold = ((NSUInteger)[[UIScreen mainScreen] scale] * 50) * 1024 * 1024;
-  self.cachePNGs = YES;
+  self.cachePNGs = NO;
   self.filesToTouch = [NSMutableOrderedSet new];
 
   self.ioOperationQueue = [NSOperationQueue new];
