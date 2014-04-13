@@ -122,6 +122,12 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
   }];
   operation.imageScale = 1.0f;
 
+  UIImage *imageFromMemory = [self objectForKey:cacheKey];
+  if (imageFromMemory) {
+    completion(imageFromMemory, YES);
+    return nil;
+  }
+
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
     // check if image is already cached in memory or on disk
