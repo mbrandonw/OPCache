@@ -111,6 +111,13 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
   cacheName = cacheName ?: kOPCacheDefaultCacheName;
   NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
 
+  // early out when image can be pulled from memory
+  UIImage *imageFromMemory = [self objectForKey:cacheKey];
+  if (imageFromMemory) {
+    completion(imageFromMemory, YES);
+    return nil;
+  }
+
   // construct the image request operation, but don't use any caching mechanism. We handle that ourselves.
   NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10.0f];
   AFImageRequestOperation *operation = [AFImageRequestOperation imageRequestOperationWithRequest:request imageProcessingBlock:nil success:^(NSURLRequest *request, NSHTTPURLResponse *response, UIImage *image) {
@@ -121,12 +128,6 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
     [self.imageOperationsByCacheKey removeObjectForKey:cacheKey];
   }];
   operation.imageScale = 1.0f;
-
-  UIImage *imageFromMemory = [self objectForKey:cacheKey];
-  if (imageFromMemory) {
-    completion(imageFromMemory, YES);
-    return nil;
-  }
 
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
