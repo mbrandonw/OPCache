@@ -300,6 +300,11 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
     CGFloat sourceHeight = image.size.height;
     CGFloat targetWidth = size.width;
     CGFloat targetHeight = size.height;
+
+    if (sourceWidth <= targetWidth && sourceHeight <= targetHeight) {
+      return image;
+    }
+
     CGFloat sourceRatio = sourceWidth / sourceHeight;
     CGFloat targetRatio = targetWidth / targetHeight;
     BOOL scaleWidth = sourceRatio <= targetRatio;
