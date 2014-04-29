@@ -62,6 +62,7 @@
     _placeholderImageView.image = nil;
   }
 
+  [self.cancelHandle cancel];
   self.cancelHandle = [[OPCache sharedCache] fetchImageForURL:url cacheName:cacheName processing:processing completion:^(UIImage *image, BOOL fromCache) {
 
     self.image = image;
@@ -94,14 +95,16 @@
 }
 
 -(UIImageView*) placeholderImageView {
-  if (! _placeholderImageView)
-  {
-    self.placeholderImageView = [UIImageView new];
-    self.placeholderImageView.frame = self.bounds;
+  if (! _placeholderImageView) {
+    self.placeholderImageView = [[UIImageView alloc] initWithFrame:self.bounds];
     self.placeholderImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
     [self addSubview:self.placeholderImageView];
   }
   return _placeholderImageView;
+}
+
+-(UIImage*) image {
+  return super.image ?: _placeholderImageView.image;
 }
 
 -(BOOL) deviceIsFast {
@@ -128,6 +131,8 @@
     fastFlag = [platform compare:@"iPod5"] == NSOrderedDescending ? 1 : 0;
   } else if ([platform hasPrefix:@"iPad"]) {
     fastFlag = [platform compare:@"iPad2"] == NSOrderedDescending ? 1 : 0;
+  } else {
+    fastFlag = 1;
   }
   return fastFlag == 1;
 }
