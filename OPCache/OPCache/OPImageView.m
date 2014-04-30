@@ -107,6 +107,13 @@
   return super.image ?: _placeholderImageView.image;
 }
 
+-(void) setImage:(UIImage *)image {
+  [super setImage:image];
+  if (! image) {
+    self.placeholderImageView.image = nil;
+  }
+}
+
 -(BOOL) deviceIsFast {
   static NSInteger fastFlag = -1;
   if (fastFlag >= 0) {
