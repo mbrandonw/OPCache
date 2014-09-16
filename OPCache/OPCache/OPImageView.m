@@ -123,8 +123,7 @@
 #if TARGET_IPHONE_SIMULATOR
   fastFlag = 1;
   return YES;
-#endif
-
+#else
   size_t size;
   sysctlbyname("hw.machine", NULL, &size, NULL, 0);
   char *answer = malloc(size);
@@ -142,6 +141,7 @@
     fastFlag = 1;
   }
   return fastFlag == 1;
+#endif
 }
 
 @end
