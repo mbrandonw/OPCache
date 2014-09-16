@@ -71,7 +71,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
   self.imagePersistencePath = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject]
                                stringByAppendingPathComponent:@"OPCache"];
   self.imagesPersistToDisk = YES;
-  self.imagePersistenceMemoryThreshold = ((NSUInteger)[[UIScreen mainScreen] scale] * 50) * 1024 * 1024;
+  self.imagePersistenceMemoryThreshold = ((NSUInteger)[[UIScreen mainScreen] scale] * 25) * 1024 * 1024;
   self.cachePNGs = NO;
   self.filesToTouch = [NSMutableOrderedSet new];
 
@@ -538,7 +538,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
                                                      CGImageGetBitsPerComponent(imageRef),
                                                      CGImageGetBytesPerRow(imageRef),
                                                      CGImageGetColorSpace(imageRef),
-                                                     CGImageGetBitmapInfo(imageRef)
+                                                     kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little
                                                      );
   CGContextDrawImage(bitmapContext, rect, imageRef);
   CGImageRef decompressedImageRef = CGBitmapContextCreateImage(bitmapContext);
