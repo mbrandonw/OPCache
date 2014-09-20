@@ -217,7 +217,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 }
 
 -(NSString*) cacheKeyFromImageURL:(NSString*)url cacheName:(NSString*)cacheName {
-  return [[NSString alloc] initWithFormat:@"%u-%@", [url hash], cacheName?cacheName:kOPCacheDefaultCacheName];
+  return [[NSString alloc] initWithFormat:@"%lu-%@", (unsigned long)[url hash], cacheName?cacheName:kOPCacheDefaultCacheName];
 }
 
 -(NSString*) cachePathForImageURL:(NSString*)url {
@@ -242,7 +242,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
   NSString *file = nil;
   while (file = [enumerator nextObject])
   {
-    if ([file hasSuffix:[NSString stringWithFormat:@"%u", [url hash]]])
+    if ([file hasSuffix:[NSString stringWithFormat:@"%lu", (unsigned long)[url hash]]])
     {
       NSString *cacheName = [[file componentsSeparatedByString:@"-"] lastObject];
       if (cacheName) {
