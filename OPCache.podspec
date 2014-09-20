@@ -8,4 +8,6 @@ Pod::Spec.new do |spec|
   spec.source       = { :git => 'https://github.com/mbrandonw/OPCache.git' }
   spec.source_files = 'OPCache/OPCache/*.{h,m}'
   spec.requires_arc = true
+
+  spec.dependency 'AFNetworking', '~> 1.1'
 end

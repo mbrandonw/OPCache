@@ -7,9 +7,18 @@
 //
 
 #import "OPCache.h"
+#import "AFImageRequestOperation.h"
 
 #define kOPCacheDefaultCacheName    @""
 #define kOPCacheOriginalKey         @"__original__"
+
+void __dispatch_sync_or_immediately_main_queue(dispatch_block_t block) {
+  if ([NSThread isMainThread]) {
+    block();
+  } else {
+    dispatch_sync(dispatch_get_main_queue(), block);
+  }
+}
 
 OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProcessingBlock block1, OPCacheImageProcessingBlock block2) {
   return [(UIImage*)^(UIImage *image) {
@@ -134,7 +143,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
     // check if image is already cached in memory or on disk
     id retVal = [self cachedImageForURL:url cacheName:cacheName];
     if (retVal) {
-      dispatch_sync_or_immediately_main_queue(^{
+      __dispatch_sync_or_immediately_main_queue(^{
         if (completion) {
           completion(retVal, YES);
         }
@@ -155,7 +164,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
       return;
     }
 
-    dispatch_sync_or_immediately_main_queue(^{
+    __dispatch_sync_or_immediately_main_queue(^{
       [self.imageOperationQueue addOperation:operation];
       [self.imageOperationsByCacheKey setObject:operation forKey:cacheKey];
     });
@@ -185,7 +194,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
     {
       // put image into memory cache
       size_t size = CGImageGetBytesPerRow(retVal.CGImage) * CGImageGetHeight(retVal.CGImage);
-      dispatch_sync_or_immediately_main_queue(^{
+      __dispatch_sync_or_immediately_main_queue(^{
         [self setObject:retVal forKey:cacheKey cost:size];
       });
       return retVal;
@@ -206,7 +215,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 -(UIImage*) diskImageFromURL:(NSString*)url cacheName:(NSString*)cacheName {
 
   NSString *path = [self cachePathForImageURL:url cacheName:cacheName];
-  dispatch_sync_or_immediately_main_queue(^{
+  __dispatch_sync_or_immediately_main_queue(^{
     [self.filesToTouch addObject:path];
   });
   return [self decompressedImageWithContentsOfFile:path];
@@ -477,7 +486,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
       }
     }
 
-    dispatch_sync_or_immediately_main_queue(^{
+    __dispatch_sync_or_immediately_main_queue(^{
       [self.filesToTouch removeAllObjects];
     });
     [[UIApplication sharedApplication] endBackgroundTask:taskIdentifier];
@@ -499,7 +508,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 
     // stick the processed image into memory cache and call completion block
     NSString *cacheKey = [self cacheKeyFromImageURL:url cacheName:cacheName];
-    dispatch_sync_or_immediately_main_queue(^{
+    __dispatch_sync_or_immediately_main_queue(^{
       [self setObject:image forKey:cacheKey];
 
       if (completion) {
@@ -529,7 +538,7 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
       }];
       ioOperation.threadPriority = 0.1f;
 
-      dispatch_sync_or_immediately_main_queue(^{
+      __dispatch_sync_or_immediately_main_queue(^{
         [self.ioOperationQueue addOperation:ioOperation];
       });
     }
