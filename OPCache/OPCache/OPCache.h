@@ -6,7 +6,8 @@
 //  Copyright (c) 2012 Opetopic. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
+@import Foundation;
+@import UIKit;
 
 typedef void (^OPCacheImageCompletionBlock)(UIImage *image, BOOL fromCache);
 typedef UIImage* (^OPCacheImageProcessingBlock)(UIImage *image);
