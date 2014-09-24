@@ -553,14 +553,23 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
   }
 
   CGImageRef imageRef = image.CGImage;
+
+  CGColorSpaceRef space = CGImageGetColorSpace(imageRef);
+  CGBitmapInfo bitmapInfo = 0;
+  if (CGColorSpaceGetModel(space) == kCGColorSpaceModelMonochrome) {
+    bitmapInfo = kCGImageAlphaNone;
+  } else {
+    bitmapInfo = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little;
+  }
+
   CGRect rect = CGRectMake(0.f, 0.f, CGImageGetWidth(imageRef), CGImageGetHeight(imageRef));
   CGContextRef bitmapContext = CGBitmapContextCreate(NULL,
                                                      rect.size.width,
                                                      rect.size.height,
                                                      CGImageGetBitsPerComponent(imageRef),
                                                      CGImageGetBytesPerRow(imageRef),
-                                                     CGImageGetColorSpace(imageRef),
-                                                     kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little
+                                                     space,
+                                                     bitmapInfo
                                                      );
   CGContextDrawImage(bitmapContext, rect, imageRef);
   CGImageRef decompressedImageRef = CGBitmapContextCreateImage(bitmapContext);
