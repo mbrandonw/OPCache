@@ -144,4 +144,9 @@
 #endif
 }
 
+-(void) setContentMode:(UIViewContentMode)contentMode {
+  [super setContentMode:contentMode];
+  self.placeholderImageView.contentMode = contentMode;
+}
+
 @end
