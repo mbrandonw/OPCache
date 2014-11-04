@@ -72,17 +72,18 @@
       completion(image, fromCache);
     }
 
+    CGFloat finalAlpha = self.alpha;
     if (placeholder) {
       _placeholderImageView.alpha = 1.0f;
     } else {
       self.alpha = 0.0f;
     }
     BOOL animate = self.animation == OPImageViewAnimationFade || (self.animation == OPImageViewAnimationAuto && [self deviceIsFast]);
-    [UIView animateWithDuration:0.3f*(!fromCache)*animate animations:^{
+    [UIView animateWithDuration:0.3 * (!fromCache && animate) animations:^{
       if (placeholder) {
         _placeholderImageView.alpha = 0.0f;
       } else {
-        self.alpha = 1.0f;
+        self.alpha = finalAlpha;
       }
     }];
   }];
