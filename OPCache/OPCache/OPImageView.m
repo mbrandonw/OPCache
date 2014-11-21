@@ -90,6 +90,8 @@
 }
 
 -(void) didMoveToWindow {
+  [super didMoveToWindow];
+  
   if (! self.window) {
     [self cancel];
   }
