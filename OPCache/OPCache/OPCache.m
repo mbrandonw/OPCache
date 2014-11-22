@@ -587,11 +587,11 @@ OPCacheImageProcessingBlock OPCacheImageProcessingBlockCompose(OPCacheImageProce
 -(id) objectForKey:(id)key {
   id retVal = [super objectForKey:key];
 #if TARGET_IPHONE_SIMULATOR
-  if (! retVal) {
-    NSLog(@"Cache miss for key: %@", key);
-  } else {
-    NSLog(@"Cache hit for key: %@", key);
-  }
+//  if (! retVal) {
+//    NSLog(@"Cache miss for key: %@", key);
+//  } else {
+//    NSLog(@"Cache hit for key: %@", key);
+//  }
 #endif
   return retVal;
 }
