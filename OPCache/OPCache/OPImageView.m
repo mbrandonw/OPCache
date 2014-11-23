@@ -13,7 +13,6 @@
 @interface OPImageView (/**/)
 @property (nonatomic, weak) id<OPCacheCancelable> cancelHandle;
 @property (nonatomic, strong, readwrite) NSString *imageURL;
-@property (nonatomic, strong) UIImageView *placeholderImageView;
 -(BOOL) deviceIsFast;
 @end
 
@@ -52,40 +51,23 @@
           processing:(UIImage*(^)(UIImage *image))processing
           completion:(OPCacheImageCompletionBlock)completion {
 
-  self.image = nil;
   self.imageURL = url;
-  [self cancel];
-  if (placeholder) {
-    self.placeholderImageView.image = placeholder;
-    self.placeholderImageView.alpha = 1.0f;
-  } else {
-    _placeholderImageView.image = nil;
-  }
+  self.image = placeholder;
 
   [self.cancelHandle cancel];
   self.cancelHandle = [[OPCache sharedCache] fetchImageForURL:url cacheName:cacheName processing:processing completion:^(UIImage *image, BOOL fromCache) {
 
-    self.image = image;
     self.cancelHandle = nil;
 
     if (completion) {
       completion(image, fromCache);
     }
 
-    CGFloat finalAlpha = self.alpha;
-    if (placeholder) {
-      _placeholderImageView.alpha = 1.0f;
-    } else {
-      self.alpha = 0.0f;
-    }
     BOOL animate = self.animation == OPImageViewAnimationFade || (self.animation == OPImageViewAnimationAuto && [self deviceIsFast]);
-    [UIView animateWithDuration:0.3 * (!fromCache && animate) animations:^{
-      if (placeholder) {
-        _placeholderImageView.alpha = 0.0f;
-      } else {
-        self.alpha = finalAlpha;
-      }
-    }];
+
+    [UIView transitionWithView:self duration:0.3 * (!fromCache && animate) options:UIViewAnimationOptionTransitionCrossDissolve animations:^{
+      self.image = image;
+    } completion:nil];
   }];
 }
 
@@ -94,26 +76,6 @@
   
   if (! self.window) {
     [self cancel];
-  }
-}
-
--(UIImageView*) placeholderImageView {
-  if (! _placeholderImageView) {
-    self.placeholderImageView = [[UIImageView alloc] initWithFrame:self.bounds];
-    self.placeholderImageView.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
-    [self addSubview:self.placeholderImageView];
-  }
-  return _placeholderImageView;
-}
-
--(UIImage*) image {
-  return super.image ?: _placeholderImageView.image;
-}
-
--(void) setImage:(UIImage *)image {
-  [super setImage:image];
-  if (! image) {
-    self.placeholderImageView.image = nil;
   }
 }
 
@@ -145,11 +107,6 @@
   }
   return fastFlag == 1;
 #endif
-}
-
--(void) setContentMode:(UIViewContentMode)contentMode {
-  [super setContentMode:contentMode];
-  self.placeholderImageView.contentMode = contentMode;
 }
 
 @end
