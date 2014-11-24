@@ -63,11 +63,18 @@
       completion(image, fromCache);
     }
 
-    BOOL animate = self.animation == OPImageViewAnimationFade || (self.animation == OPImageViewAnimationAuto && [self deviceIsFast]);
-
-    [UIView transitionWithView:self duration:0.3 * (!fromCache && animate) options:UIViewAnimationOptionTransitionCrossDissolve animations:^{
+    BOOL animate = !fromCache && (self.animation == OPImageViewAnimationFade || (self.animation == OPImageViewAnimationAuto && [self deviceIsFast]));
+    if (animate) {
+      [UIView
+       transitionWithView:self
+       duration:0.3
+       options:UIViewAnimationOptionTransitionCrossDissolve | UIViewAnimationOptionBeginFromCurrentState | UIViewAnimationOptionAllowAnimatedContent | UIViewAnimationOptionLayoutSubviews
+       animations:^{
+         self.image = image;
+       } completion:nil];
+    } else {
       self.image = image;
-    } completion:nil];
+    }
   }];
 }
 
